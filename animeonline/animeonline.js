@@ -139,6 +139,72 @@ function extractEpisodesFromHtml(html, url) {
     return JSON.stringify(episodes);
 }
 
+// ── Helper: extraer m3u8/mp4 desde minochinos.com ──────────────────────────
+async function extractFromMinochinos(embedUrl) {
+    try {
+        // Normalizar: si viene como /file/ convertir a /embed/
+        const normalizedUrl = embedUrl.replace("/file/", "/embed/");
+
+        const resp = await fetchv2(normalizedUrl, {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+            "Referer": "https://www.anime-jl.net/",
+            "Origin": "https://www.anime-jl.net"
+        });
+        const html = await resp.text();
+
+        // Minochinos usa HLS — buscar m3u8
+        const m3u8 = html.match(/https?:\/\/[^\s"'\\>]+\.m3u8(?:\?[^\s"'\\>]*)?/i);
+        if (m3u8) return m3u8[0];
+
+        // Buscar en JSON embebido tipo jwplayer/videojs
+        const fileJson = html.match(/['"](?:file|src|url)['"]\s*:\s*['"](https?:\/\/[^'"]+\.(?:m3u8|mp4)[^'"]*)['"]/i);
+        if (fileJson) return fileJson[1];
+
+        // jwplayer sources array
+        const jwMatch = html.match(/sources\s*:\s*\[\s*\{[^}]*file\s*:\s*['"]([^'"]+)['"]/i);
+        if (jwMatch) return jwMatch[1];
+
+        // mp4 fallback
+        const mp4 = html.match(/https?:\/\/[^\s"'\\>]+\.mp4(?:\?[^\s"'\\>]*)?/i);
+        if (mp4) return mp4[0];
+
+        console.log("extractFromMinochinos: no se encontró stream en " + normalizedUrl);
+        return null;
+    } catch (e) {
+        console.log("extractFromMinochinos error: " + e);
+        return null;
+    }
+}
+
+// ── Helper: extraer desde otros reproductores genéricos ────────────────────
+async function extractFromGenericPlayer(iframeUrl) {
+    try {
+        const resp = await fetchv2(iframeUrl, {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+            "Referer": "https://www.anime-jl.net/",
+            "Origin": "https://www.anime-jl.net"
+        });
+        const html = await resp.text();
+
+        const m3u8 = html.match(/https?:\/\/[^\s"'\\>]+\.m3u8(?:\?[^\s"'\\>]*)?/i);
+        if (m3u8) return m3u8[0];
+
+        const fileJson = html.match(/['"](?:file|src|url)['"]\s*:\s*['"](https?:\/\/[^'"]+\.(?:m3u8|mp4)[^'"]*)['"]/i);
+        if (fileJson) return fileJson[1];
+
+        const jwMatch = html.match(/sources\s*:\s*\[\s*\{[^}]*file\s*:\s*['"]([^'"]+)['"]/i);
+        if (jwMatch) return jwMatch[1];
+
+        const mp4 = html.match(/https?:\/\/[^\s"'\\>]+\.mp4(?:\?[^\s"'\\>]*)?/i);
+        if (mp4) return mp4[0];
+
+        return null;
+    } catch (e) {
+        console.log("extractFromGenericPlayer error: " + e);
+        return null;
+    }
+}
+
 async function extractStreamUrl(url) {
     try {
         const response = await fetchv2(url, {
@@ -148,11 +214,11 @@ async function extractStreamUrl(url) {
         });
         const html = await response.text();
 
-        // 1. Buscar m3u8 directo en el HTML principal
+        // 1. m3u8 directo en el HTML principal
         const directM3u8 = html.match(/https?:\/\/[^\s"'<>]+\.m3u8(?:\?[^\s"'<>]*)?/i);
         if (directM3u8) return directM3u8[0];
 
-        // 2. Recolectar todos los iframes
+        // 2. Recolectar todos los iframes y data-src
         const iframeRegex = /<iframe[^>]+src=['"]([^'"]+)['"]/gi;
         let iframeMatch;
         const iframes = [];
@@ -163,8 +229,7 @@ async function extractStreamUrl(url) {
             if (src.startsWith("http")) iframes.push(src);
         }
 
-        // También buscar data-src de reproductores conocidos
-        const dataSrcRegex = /data-src=['"]([^'"]*(?:streamwish|filemoon|dood|voe|streamtape)[^'"]*)['"]|data-video=['"]([^'"]+)['"]/gi;
+        const dataSrcRegex = /data-(?:src|video|url)=['"]([^'"]*(?:minochinos|streamwish|filemoon|dood|voe|streamtape)[^'"]*)['"]|data-(?:src|video)=['"]([^'"]+\.m3u8[^'"]*)['"]/gi;
         let dsMatch;
         while ((dsMatch = dataSrcRegex.exec(html)) !== null) {
             let src = dsMatch[1] || dsMatch[2];
@@ -173,40 +238,23 @@ async function extractStreamUrl(url) {
             if (src.startsWith("http")) iframes.push(src);
         }
 
-        // 3. Iterar cada iframe buscando el stream
+        // 3. Iterar iframes — priorizar minochinos
         for (const iframeUrl of iframes) {
-            try {
-                const iframeResp = await fetchv2(iframeUrl, {
-                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
-                    "Referer": "https://www.anime-jl.net/",
-                    "Origin": "https://www.anime-jl.net"
-                });
-                const iframeHtml = await iframeResp.text();
+            let streamUrl = null;
 
-                // m3u8 directo
-                const m3u8 = iframeHtml.match(/https?:\/\/[^\s"'\\>]+\.m3u8(?:\?[^\s"'\\>]*)?/i);
-                if (m3u8) return m3u8[0];
-
-                // JSON embebido: "file":"url"
-                const fileJson = iframeHtml.match(/['"](?:file|src)['"]\s*:\s*['"](https?:\/\/[^'"]+\.(?:m3u8|mp4)[^'"]*)['"]/i);
-                if (fileJson) return fileJson[1];
-
-                // jwplayer setup sources
-                const jwMatch = iframeHtml.match(/sources\s*:\s*\[\s*\{[^}]*file\s*:\s*['"]([^'"]+)['"]/i);
-                if (jwMatch) return jwMatch[1];
-
-                // mp4 como fallback
-                const mp4 = iframeHtml.match(/https?:\/\/[^\s"'\\>]+\.mp4(?:\?[^\s"'\\>]*)?/i);
-                if (mp4) return mp4[0];
-
-            } catch (iframeError) {
-                console.log("iframe fetch error: " + iframeUrl + " — " + iframeError);
+            if (iframeUrl.includes("minochinos.com")) {
+                console.log("extractStreamUrl: usando minochinos -> " + iframeUrl);
+                streamUrl = await extractFromMinochinos(iframeUrl);
+            } else {
+                streamUrl = await extractFromGenericPlayer(iframeUrl);
             }
+
+            if (streamUrl) return streamUrl;
         }
 
-        // 4. Último intento: buscar en el HTML principal con patrón file/src JSON
-        const fileMatch2 = html.match(/['"](?:file|src)['"]\s*:\s*['"](https?:\/\/[^'"]+\.(?:m3u8|mp4)[^'"]*)['"]/i);
-        if (fileMatch2) return fileMatch2[1];
+        // 4. Fallback: buscar file/src JSON en el HTML principal
+        const fileMatch = html.match(/['"](?:file|src)['"]\s*:\s*['"](https?:\/\/[^'"]+\.(?:m3u8|mp4)[^'"]*)['"]/i);
+        if (fileMatch) return fileMatch[1];
 
         console.log("extractStreamUrl: no se encontró stream en " + url);
         return null;
