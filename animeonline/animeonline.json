@@ -10,7 +10,7 @@
     "streamType": "HLS",
     "quality": "1080p",
     "baseUrl": "https://anime-jl.net/",
-    "searchBaseUrl": "https://anime-jl.net/animes?q=%s",
+    "searchBaseUrl": "https://anime-jl.net/animes?q=",
     "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
     "asyncJS": true,
     "type": "anime"
