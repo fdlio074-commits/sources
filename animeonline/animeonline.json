@@ -1,17 +1,17 @@
 {
-   "sourceName": "AnimeOnline",
-   "iconUrl": "https://anime-jl.net/favicon.ico",
-   "author": {
-       "name": "Fdlio",
-       "icon": "https://anime-jl.net/favicon.ico"
-   },
-   "version": "1.0.0",
-   "language": "Spanish (SUB)",
-   "streamType": "HLS",
-   "quality": "1080p",
-   "baseUrl": "https://anime-jl.net/",
-   "searchBaseUrl": "https://anime-jl.net/animes?q=%s",
-   "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
-   "asyncJS": true,
-   "type": "anime"
+  "sourceName": "AnimeOnline",
+  "iconUrl": "https://anime-jl.net/favicon.ico",
+  "author": {
+    "name": "Fdlio",
+    "icon": "https://anime-jl.net/favicon.ico"
+  },
+  "version": "1.0.0",
+  "language": "Spanish",
+  "streamType": "HLS",
+  "quality": "1080p",
+  "baseUrl": "https://anime-jl.net/",
+  "searchBaseUrl": "https://anime-jl.net/animes?q=%s",
+  "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
+  "type": "anime",
+  "asyncJS": true
 }
