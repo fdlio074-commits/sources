@@ -1,19 +1,17 @@
 {
-  "sourceName": "HentaiLA",
-  "iconUrl": "https://hentaila.com/favicon.ico",
-  "author": {
-    "name": "Fdlio",
-    "icon": "https://avatars.githubusercontent.com/fdlio074-commits"
-  },
-  "version": "1.0.0",
-  "language": "Spanish (Sub)",
-  "streamType": "HLS",
-  "quality": "720p",
-  "baseUrl": "https://hentaila.com",
-  "searchBaseUrl": "https://hentaila.com/catalogo?search=%s",
-  "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
-  "asyncJS": false,
-  "streamAsyncJS": true,
-  "softsub": false,
-  "type": "anime"
+    "sourceName": "Anime-JL",
+    "iconUrl": "https://anime-jl.net/favicon.ico",
+    "author": {
+        "name": "Usuario",
+        "icon": "https://anime-jl.net/favicon.ico"
+    },
+    "version": "1.0.0",
+    "language": "Español Latino",
+    "streamType": "HLS",
+    "quality": "1080p",
+    "baseUrl": "https://anime-jl.net/",
+    "searchBaseUrl": "https://anime-jl.net/?s=%s",
+    "scriptUrl": "URL_A_TU_ARCHIVO_animejl.js",
+    "asyncJS": true,
+    "type": "anime"
 }
