@@ -22,26 +22,19 @@ async function searchResults(keyword) {
 
         while ((articleMatch = articleRegex.exec(html)) !== null) {
             const block = articleMatch[1];
-
             const hrefMatch = block.match(/href='(https:\/\/www\.anime-jl\.net\/anime\/[^']+)'/);
             if (!hrefMatch) continue;
             const href = hrefMatch[1];
-
             const titleMatch = block.match(/<h3[^>]*class='Title'[^>]*>([^<]+)<\/h3>/);
             if (!titleMatch) continue;
             const title = titleMatch[1].trim();
-
             const imgMatch = block.match(/<img[^>]+src='([^']+)'/);
             let image = imgMatch ? imgMatch[1] : "";
-            if (image.startsWith("/")) {
-                image = "https://www.anime-jl.net" + image;
-            }
-
+            if (image.startsWith("/")) image = "https://www.anime-jl.net" + image;
             results.push({ title: title, image: image, href: href });
         }
 
         return JSON.stringify(results);
-
     } catch (error) {
         console.log("searchResults error: " + error);
         return JSON.stringify([]);
@@ -58,9 +51,7 @@ async function extractDetails(url) {
 
         let description = "Sin descripción disponible.";
         const descMatch = html.match(/<div[^>]*class="Description"[^>]*>([\s\S]*?)<\/div>/i);
-        if (descMatch) {
-            description = descMatch[1].replace(/<[^>]+>/g, "").trim();
-        }
+        if (descMatch) description = descMatch[1].replace(/<[^>]+>/g, "").trim();
 
         const aliases = [];
         const aliasRegex = /<span[^>]*class='TxtAlt'[^>]*>([^<]+)<\/span>/g;
@@ -79,7 +70,6 @@ async function extractDetails(url) {
             aliases: aliases.join(", "),
             airdate: airdate
         }]);
-
     } catch (error) {
         console.log("extractDetails error: " + error);
         return JSON.stringify([{ description: "Error al cargar.", aliases: "", airdate: "Desconocido" }]);
@@ -88,53 +78,27 @@ async function extractDetails(url) {
 
 async function extractEpisodes(url) {
     try {
-        const response = await fetchv2(url, {
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
-            "Referer": "https://www.anime-jl.net/"
-        });
+        // Intentar el fetch sin headers primero
+        const response = await fetchv2(url);
         const html = await response.text();
 
-        // Buscar la línea que tiene anime_info con datos reales (no la vacía "")
-        // Patrón: var anime_info = ["1049","Naruto...","naruto-latino-v2",...];
-        const animeInfoMatch = html.match(/var anime_info\s*=\s*\["(\d+)","([^"]+)","([^"]+)"/);
-        if (!animeInfoMatch) {
-            console.log("extractEpisodes: no se encontró anime_info con datos");
-            return JSON.stringify([]);
-        }
+        const htmlLen = html ? html.length : 0;
 
-        const animeId   = animeInfoMatch[1]; // "1049"
-        const animeSlug = animeInfoMatch[3]; // "naruto-latino-v2"
-
-        // Buscar el array episodes — termina con ],]; así que usamos un regex más flexible
-        const episodesMatch = html.match(/var episodes\s*=\s*(\[[\s\S]*?\],?\])\s*;/);
-        if (!episodesMatch) {
-            console.log("extractEpisodes: no se encontró el array episodes");
-            return JSON.stringify([]);
-        }
-
-        const episodesRaw = episodesMatch[1];
-
-        // Cada entrada: [226,"episodio-226","cover.jpg",""]
-        const epRegex = /\[(\d+),"(episodio-\d+)"/g;
-        const episodes = [];
-        const seen = new Set();
-        let epMatch;
-
-        while ((epMatch = epRegex.exec(episodesRaw)) !== null) {
-            const epNum  = parseInt(epMatch[1]);
-            const epSlug = epMatch[2];
-
-            if (seen.has(epNum)) continue;
-            seen.add(epNum);
-
-            episodes.push({
-                href: "https://www.anime-jl.net/anime/" + animeId + "/" + animeSlug + "/" + epSlug,
-                number: epNum
+        // Si el HTML es muy corto, el sitio bloqueó el request
+        if (htmlLen < 1000) {
+            console.log("extractEpisodes: HTML bloqueado, largo=" + htmlLen);
+            // Intentar con headers
+            const response2 = await fetchv2(url, {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "es-ES,es;q=0.9",
+                "Referer": "https://www.anime-jl.net/"
             });
+            const html2 = await response2.text();
+            return extractEpisodesFromHtml(html2, url);
         }
 
-        episodes.sort((a, b) => a.number - b.number);
-        return JSON.stringify(episodes);
+        return extractEpisodesFromHtml(html, url);
 
     } catch (error) {
         console.log("extractEpisodes error: " + error);
@@ -142,7 +106,47 @@ async function extractEpisodes(url) {
     }
 }
 
-async function extractEpisodes(url) {
+function extractEpisodesFromHtml(html, url) {
+    // Extraer id y slug directamente de la URL como fallback
+    // URL: https://www.anime-jl.net/anime/1049/naruto-latino-v2
+    const urlMatch = url.match(/\/anime\/(\d+)\/([^\/]+)/);
+    let animeId = urlMatch ? urlMatch[1] : null;
+    let animeSlug = urlMatch ? urlMatch[2] : null;
+
+    // También intentar desde el HTML
+    const animeInfoMatch = html.match(/var anime_info\s*=\s*\["(\d+)","[^"]*","([^"]+)"/);
+    if (animeInfoMatch) {
+        animeId = animeInfoMatch[1];
+        animeSlug = animeInfoMatch[2];
+    }
+
+    if (!animeId || !animeSlug) {
+        console.log("extractEpisodes: no se pudo obtener animeId/animeSlug");
+        return JSON.stringify([]);
+    }
+
+    // Extraer episodios con regex simple sobre cada par [número, "episodio-N"]
+    const epRegex = /\[(\d+),"(episodio-\d+)"/g;
+    const episodes = [];
+    const seen = new Set();
+    let epMatch;
+
+    while ((epMatch = epRegex.exec(html)) !== null) {
+        const epNum = parseInt(epMatch[1]);
+        const epSlug = epMatch[2];
+        if (seen.has(epNum)) continue;
+        seen.add(epNum);
+        episodes.push({
+            href: "https://www.anime-jl.net/anime/" + animeId + "/" + animeSlug + "/" + epSlug,
+            number: epNum
+        });
+    }
+
+    episodes.sort((a, b) => a.number - b.number);
+    return JSON.stringify(episodes);
+}
+
+async function extractStreamUrl(url) {
     try {
         const response = await fetchv2(url, {
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
@@ -150,22 +154,40 @@ async function extractEpisodes(url) {
         });
         const html = await response.text();
 
-        // Devolver los primeros 500 caracteres del HTML para ver qué llega
-        const snippet = html.substring(0, 500);
-        
-        // Buscar si existe "anime_info" en el html
-        const hasAnimeInfo = html.indexOf("anime_info") !== -1 ? "SI tiene anime_info" : "NO tiene anime_info";
-        const hasEpisodes = html.indexOf("var episodes") !== -1 ? "SI tiene var episodes" : "NO tiene var episodes";
-        const htmlLength = "largo del html: " + html.length;
+        const m3u8Match = html.match(/https?:\/\/[^\s"'<>]+\.m3u8[^\s"'<>]*/i);
+        if (m3u8Match) return m3u8Match[0];
 
-        // Retornar como un episodio de diagnóstico
-        return JSON.stringify([{
-            href: "https://www.anime-jl.net",
-            number: 0,
-            title: hasAnimeInfo + " | " + hasEpisodes + " | " + htmlLength
-        }]);
+        const mp4Match = html.match(/https?:\/\/[^\s"'<>]+\.mp4[^\s"'<>]*/i);
+        if (mp4Match) return mp4Match[0];
 
+        const iframeMatch = html.match(/<iframe[^>]+src=['"]([^'"]+)['"]/i);
+        if (iframeMatch) {
+            const iframeUrl = iframeMatch[1].startsWith("//")
+                ? "https:" + iframeMatch[1]
+                : iframeMatch[1];
+
+            const iframeResp = await fetchv2(iframeUrl, {
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+                "Referer": "https://www.anime-jl.net/"
+            });
+            const iframeHtml = await iframeResp.text();
+
+            const iframeM3u8 = iframeHtml.match(/https?:\/\/[^\s"'<>]+\.m3u8[^\s"'<>]*/i);
+            if (iframeM3u8) return iframeM3u8[0];
+
+            const iframeMp4 = iframeHtml.match(/https?:\/\/[^\s"'<>]+\.mp4[^\s"'<>]*/i);
+            if (iframeMp4) return iframeMp4[0];
+
+            const fileMatch = iframeHtml.match(/["'](?:file|src)["']\s*:\s*["'](https?:\/\/[^"']+\.(?:m3u8|mp4)[^"']*)["']/i);
+            if (fileMatch) return fileMatch[1];
+        }
+
+        const fileMatch2 = html.match(/["'](?:file|src)["']\s*:\s*["'](https?:\/\/[^"']+\.(?:m3u8|mp4)[^"']*)["']/i);
+        if (fileMatch2) return fileMatch2[1];
+
+        return null;
     } catch (error) {
-        return JSON.stringify([{ href: "error", number: 0, title: "ERROR: " + error }]);
+        console.log("extractStreamUrl error: " + error);
+        return null;
     }
 }
