@@ -1,126 +1,81 @@
-// TioAnime - Source Script
+// TioAnime - Source Script (via JIMOV API)
 // Author: fdlio074
 // Compatible con: Mojuru, Dartotsu, Sora, Luna, Anymex, Tsumi, Hiyoku, Shirox
 
+const API = "https://jimov-api.vercel.app";
 const BASE_URL = "https://tioanime.com";
-
-const HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-  "Accept-Language": "es-ES,es;q=0.9",
-  "Referer": "https://tioanime.com/",
-};
 
 // ─── BÚSQUEDA ───────────────────────────────────────────────────────────────
 async function search(query) {
-  const url = `${BASE_URL}/buscar?q=${encodeURIComponent(query)}`;
-  const res = await fetch(url, { headers: HEADERS });
-  const html = await res.text();
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
+  const url = `${API}/anime/tioanime/search?q=${encodeURIComponent(query)}`;
+  const res = await fetch(url);
+  const data = await res.json();
 
-  const results = [];
-  doc.querySelectorAll("ul.animes li article").forEach((el) => {
-    const title = el.querySelector("h3.title")?.textContent?.trim();
-    const href = el.querySelector("a")?.getAttribute("href");
-    const image = el.querySelector("img")?.getAttribute("src");
-    if (title && href) {
-      results.push({
-        title,
-        url: href.startsWith("http") ? href : BASE_URL + href,
-        image: image?.startsWith("http") ? image : BASE_URL + image,
-      });
-    }
-  });
-
-  return results;
+  return (data.results || []).map((item) => ({
+    title: item.name,
+    url: `${BASE_URL}/anime/${item.url.split("/").pop()}`,
+    image: item.image?.url || item.image || "",
+  }));
 }
 
 // ─── DETALLE DEL ANIME ───────────────────────────────────────────────────────
 async function getAnimeDetails(animeUrl) {
-  const res = await fetch(animeUrl, { headers: HEADERS });
-  const html = await res.text();
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
+  const slug = animeUrl.split("/anime/").pop();
+  const url = `${API}/anime/tioanime/name/${slug}`;
+  const res = await fetch(url);
+  const data = await res.json();
 
-  const title = doc.querySelector("h1.title")?.textContent?.trim();
-  const description = doc.querySelector("p.sinopsis")?.textContent?.trim();
-  const image = doc.querySelector(".cover img")?.getAttribute("src");
-  const status = doc.querySelector(".status")?.textContent?.trim();
-  const genres = [...doc.querySelectorAll(".genres a")].map(a => a.textContent.trim());
-
-  // Episodios desde el array JS embebido en la página
-  const episodes = [];
-  const scriptMatch = html.match(/var episodes\s*=\s*(\[.*?\]);/s);
-  if (scriptMatch) {
-    try {
-      const epData = JSON.parse(scriptMatch[1]);
-      const slug = animeUrl.split("/anime/")[1];
-      epData.forEach(([epNum]) => {
-        episodes.push({
-          title: `Episodio ${epNum}`,
-          url: `${BASE_URL}/ver/${slug}-${epNum}`,
-        });
-      });
-    } catch (e) {}
-  }
-
-  // Fallback: buscar enlaces directos
-  if (episodes.length === 0) {
-    doc.querySelectorAll(".episodes-list a").forEach((a) => {
-      const href = a.getAttribute("href");
-      const epTitle = a.querySelector(".num")?.textContent?.trim() || a.textContent.trim();
-      if (href) {
-        episodes.push({
-          title: `Episodio ${epTitle}`,
-          url: href.startsWith("http") ? href : BASE_URL + href,
-        });
-      }
-    });
-  }
+  const episodes = (data.episodes || []).map((ep) => ({
+    title: `Episodio ${ep.number || ep.id}`,
+    url: `${BASE_URL}/ver/${slug}-${ep.number || ep.id}`,
+  }));
 
   return {
-    title,
-    description,
-    image: image?.startsWith("http") ? image : BASE_URL + image,
-    status,
-    genres,
+    title: data.name,
+    description: data.synopsis,
+    image: data.image?.url || data.image || "",
+    status: data.status || "",
+    genres: data.genres || [],
     episodes,
   };
 }
 
 // ─── OBTENER STREAM ──────────────────────────────────────────────────────────
 async function getStream(episodeUrl) {
-  const res = await fetch(episodeUrl, { headers: HEADERS });
-  const html = await res.text();
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
+  // Extraer slug del episodio: /ver/naruto-1 → naruto-1
+  const epSlug = episodeUrl.split("/ver/").pop();
+  const url = `${API}/anime/tioanime/episode/${epSlug}`;
+  const res = await fetch(url);
+  const data = await res.json();
 
   const servers = [];
 
-  // Servidores embebidos en variable JS
-  const videosMatch = html.match(/var videos\s*=\s*(\[.*?\]);/s);
-  if (videosMatch) {
-    try {
-      const videoData = JSON.parse(videosMatch[1]);
-      videoData.forEach(([name, url]) => {
-        if (url) servers.push({ name, url });
-      });
-    } catch (e) {}
-  }
+  (data.servers || data.links || []).forEach((s, i) => {
+    const name = s.name || s.server || `Server ${i + 1}`;
+    const link = s.url || s.link || s.src;
+    if (link) servers.push({ name, url: link });
+  });
 
-  // Fallback: iframes directos
+  // Fallback: scraping directo del HTML del episodio
   if (servers.length === 0) {
-    doc.querySelectorAll("iframe").forEach((iframe, i) => {
-      const src = iframe.getAttribute("src") || iframe.getAttribute("data-src");
-      if (src) servers.push({ name: `Server ${i + 1}`, url: src });
-    });
-  }
+    try {
+      const pageRes = await fetch(episodeUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+          "Referer": BASE_URL,
+        },
+      });
+      const html = await pageRes.text();
 
-  // Buscar m3u8 directo en el HTML
-  const m3u8Match = html.match(/https?:\/\/[^\s"']+\.m3u8[^\s"']*/);
-  if (m3u8Match) {
-    servers.push({ name: "HLS Directo", url: m3u8Match[0] });
+      // tioanime guarda los videos en: var videos = [["Nombre","url"],...]
+      const match = html.match(/var\s+videos\s*=\s*(\[[\s\S]*?\]);/);
+      if (match) {
+        const videoList = JSON.parse(match[1]);
+        videoList.forEach(([name, link]) => {
+          if (link) servers.push({ name, url: link });
+        });
+      }
+    } catch (e) {}
   }
 
   return servers;
@@ -128,28 +83,16 @@ async function getStream(episodeUrl) {
 
 // ─── ÚLTIMOS EPISODIOS ───────────────────────────────────────────────────────
 async function getLatestEpisodes() {
-  const res = await fetch(BASE_URL, { headers: HEADERS });
-  const html = await res.text();
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
+  const url = `${API}/anime/tioanime/latest`;
+  const res = await fetch(url);
+  const data = await res.json();
 
-  const episodes = [];
-  doc.querySelectorAll("ul.episodes-list li").forEach((li) => {
-    const title = li.querySelector(".title")?.textContent?.trim();
-    const href = li.querySelector("a")?.getAttribute("href");
-    const image = li.querySelector("img")?.getAttribute("src");
-    const epNum = li.querySelector(".episode")?.textContent?.trim();
-    if (title && href) {
-      episodes.push({
-        title,
-        episode: epNum || "",
-        url: href.startsWith("http") ? href : BASE_URL + href,
-        image: image?.startsWith("http") ? image : BASE_URL + image,
-      });
-    }
-  });
-
-  return episodes;
+  return (data.results || data || []).map((item) => ({
+    title: item.name || item.title,
+    episode: item.episode ? `Episodio ${item.episode}` : "",
+    url: item.url?.startsWith("http") ? item.url : `${BASE_URL}${item.url}`,
+    image: item.image?.url || item.image || item.preview || "",
+  }));
 }
 
 // ─── EXPORTAR ────────────────────────────────────────────────────────────────
