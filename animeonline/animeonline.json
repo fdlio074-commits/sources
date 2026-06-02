@@ -1,10 +1,17 @@
 {
-    "nombre": "Anime-JL",
-    "urlBase": "https://anime-jl.net",
-    "searchBaseUrl": "/buscar?q=",
-    "version": "1.1",
-    "idioma": "es",
-    "descripcion": "Ver y descargar anime en HD subtítulado latino, enlaces directos y Mega",
-    "autor": "Generado para Sora",
-    "estado": "activo"
+    "sourceName": "Anime-JL",
+    "iconUrl": "https://anime-jl.net/wp-content/uploads/2020/02/cropped-logo-animejl-192x192.png",
+    "author": {
+        "name": "Fdlio",
+        "icon": "https://avatars.githubusercontent.com/u/fdlio074-commits"
+    },
+    "version": "1.0.2",
+    "language": "Español Latino",
+    "streamType": "HLS",
+    "quality": "1080p",
+    "baseUrl": "https://anime-jl.net",
+    "searchBaseUrl": "https://anime-jl.net/animes?q=%s",
+    "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
+    "asyncJS": true,
+    "type": "anime"
 }
