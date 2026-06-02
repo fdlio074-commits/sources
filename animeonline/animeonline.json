@@ -1,1 +1,19 @@
-
+{
+  "sourceName": "HentaiLA",
+  "iconUrl": "https://hentaila.com/favicon.ico",
+  "author": {
+    "name": "Fdlio",
+    "icon": "https://avatars.githubusercontent.com/fdlio074-commits"
+  },
+  "version": "1.0.0",
+  "language": "Spanish (Sub)",
+  "streamType": "HLS",
+  "quality": "720p",
+  "baseUrl": "https://hentaila.com",
+  "searchBaseUrl": "https://hentaila.com/catalogo?search=%s",
+  "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
+  "asyncJS": false,
+  "streamAsyncJS": true,
+  "softsub": false,
+  "type": "anime"
+}
