@@ -17,32 +17,20 @@ async function searchResults(keyword) {
         const html = await response.text();
 
         const results = [];
-
-        // Estructura real del sitio:
-        // <article class='Anime alt B'>
-        //   <a href='https://www.anime-jl.net/anime/1049/naruto-latino-v2'>
-        //     <figure><img src='/storage/animes_tumbl/....jpg' alt='Título'></figure>
-        //     <h3 class='Title'>Título</h3>
-        //   </a>
-        // </article>
-
         const articleRegex = /<article[^>]*class='Anime[^']*'[^>]*>([\s\S]*?)<\/article>/g;
         let articleMatch;
 
         while ((articleMatch = articleRegex.exec(html)) !== null) {
             const block = articleMatch[1];
 
-            // Href: viene completo con el dominio
             const hrefMatch = block.match(/href='(https:\/\/www\.anime-jl\.net\/anime\/[^']+)'/);
             if (!hrefMatch) continue;
             const href = hrefMatch[1];
 
-            // Título: <h3 class='Title'>Naruto Español Latino</h3>
             const titleMatch = block.match(/<h3[^>]*class='Title'[^>]*>([^<]+)<\/h3>/);
             if (!titleMatch) continue;
             const title = titleMatch[1].trim();
 
-            // Imagen: src relativo /storage/...
             const imgMatch = block.match(/<img[^>]+src='([^']+)'/);
             let image = imgMatch ? imgMatch[1] : "";
             if (image.startsWith("/")) {
@@ -68,25 +56,30 @@ async function extractDetails(url) {
         });
         const html = await response.text();
 
+        // Descripción: <div class="Description" ...><p><p>texto...</p></p></div>
         let description = "Sin descripción disponible.";
-        const descMatch = html.match(/<div[^>]*class="[^"]*sinopsis[^"]*"[^>]*>([\s\S]*?)<\/div>/i)
-            || html.match(/<div[^>]*class='[^']*sinopsis[^']*'[^>]*>([\s\S]*?)<\/div>/i)
-            || html.match(/<p[^>]*>([\s\S]{80,500}?)<\/p>/i);
+        const descMatch = html.match(/<div[^>]*class="Description"[^>]*>([\s\S]*?)<\/div>/i);
         if (descMatch) {
             description = descMatch[1].replace(/<[^>]+>/g, "").trim();
         }
 
-        let aliases = "";
-        const aliasMatch = html.match(/titulo alterno[^<]*<[^>]*>([^<]+)/i);
-        if (aliasMatch) aliases = aliasMatch[1].trim();
+        // Alias: span class TxtAlt
+        const aliases = [];
+        const aliasRegex = /<span[^>]*class='TxtAlt'[^>]*>([^<]+)<\/span>/g;
+        let aliasMatch;
+        while ((aliasMatch = aliasRegex.exec(html)) !== null) {
+            const val = aliasMatch[1].trim();
+            if (val) aliases.push(val);
+        }
 
+        // Año: de la meta published_time
         let airdate = "Desconocido";
-        const airMatch = html.match(/>(\d{4})<\/(?:span|td|li|p|strong)>/);
-        if (airMatch) airdate = airMatch[1];
+        const yearMatch = html.match(/published_time.*?(\d{4})/);
+        if (yearMatch) airdate = yearMatch[1];
 
         return JSON.stringify([{
             description: description,
-            aliases: aliases,
+            aliases: aliases.join(", "),
             airdate: airdate
         }]);
 
@@ -104,17 +97,40 @@ async function extractEpisodes(url) {
         });
         const html = await response.text();
 
-        const episodes = [];
-        // Patrón: href='https://www.anime-jl.net/anime/1049/naruto-latino-v2/episodio-1'
-        const epRegex = /href='(https:\/\/www\.anime-jl\.net\/anime\/[^']+\/episodio-(\d+))'/gi;
-        const seen = new Set();
-        let match;
+        // Los episodios están en una variable JS:
+        // var anime_info = ["1049","Naruto Español Latino","naruto-latino-v2","","Anime"];
+        // var episodes = [[226,"episodio-226","cover.jpg",""],[225,...], ...];
 
-        while ((match = epRegex.exec(html)) !== null) {
-            const epHref = match[1];
-            const epNum = parseInt(match[2]);
-            if (seen.has(epHref)) continue;
-            seen.add(epHref);
+        // Extraer anime_info para obtener el id y slug
+        const animeInfoMatch = html.match(/var anime_info\s*=\s*\[([^\]]+)\]/);
+        if (!animeInfoMatch) return JSON.stringify([]);
+
+        const parts = animeInfoMatch[1].match(/"([^"]*)"/g);
+        if (!parts || parts.length < 3) return JSON.stringify([]);
+
+        const animeId = parts[0].replace(/"/g, "");   // "1049"
+        const animeSlug = parts[2].replace(/"/g, ""); // "naruto-latino-v2"
+
+        // Extraer el array episodes completo
+        const episodesMatch = html.match(/var episodes\s*=\s*(\[\[[\s\S]*?\]\])\s*;/);
+        if (!episodesMatch) return JSON.stringify([]);
+
+        const episodesRaw = episodesMatch[1];
+
+        // Cada entrada: [226,"episodio-226","cover.jpg",""]
+        const epRegex = /\[(\d+),"(episodio-\d+)","([^"]*)"[^\]]*\]/g;
+        const episodes = [];
+        const seen = new Set();
+        let epMatch;
+
+        while ((epMatch = epRegex.exec(episodesRaw)) !== null) {
+            const epNum = parseInt(epMatch[1]);
+            const epSlug = epMatch[2]; // "episodio-226"
+
+            if (seen.has(epNum)) continue;
+            seen.add(epNum);
+
+            const epHref = "https://www.anime-jl.net/anime/" + animeId + "/" + animeSlug + "/" + epSlug;
             episodes.push({ href: epHref, number: epNum });
         }
 
