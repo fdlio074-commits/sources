@@ -5,15 +5,6 @@
 //  Modo: asyncJS = true | Idioma: Español Latino
 // ============================================================
 
-// ── 1. searchResults ────────────────────────────────────────
-// URL real: https://www.anime-jl.net/animes?q=<keyword>
-// Estructura HTML:
-//   <a href="/anime/309/boruto-latino-v2">
-//     <div class="Image fa-play-circle-o">
-//       <figure><img src="/storage/..." alt="Título"></figure>
-//     </div>
-//     <h3 class="Title">Título del Anime</h3>
-//   </a>
 async function searchResults(keyword) {
     try {
         const encodedKeyword = encodeURIComponent(keyword);
@@ -27,30 +18,38 @@ async function searchResults(keyword) {
 
         const results = [];
 
-        // Extraer todos los bloques: <a href="/anime/..."> ... <h3 class="Title">...</h3> ... </a>
-        const blockRegex = /<a\s+href="(\/anime\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-        let match;
+        // Estructura real del sitio:
+        // <article class='Anime alt B'>
+        //   <a href='https://www.anime-jl.net/anime/1049/naruto-latino-v2'>
+        //     <figure><img src='/storage/animes_tumbl/....jpg' alt='Título'></figure>
+        //     <h3 class='Title'>Título</h3>
+        //   </a>
+        // </article>
 
-        while ((match = blockRegex.exec(html)) !== null) {
-            const href = "https://www.anime-jl.net" + match[1];
-            const inner = match[2];
+        const articleRegex = /<article[^>]*class='Anime[^']*'[^>]*>([\s\S]*?)<\/article>/g;
+        let articleMatch;
 
-            // Solo bloques que tengan <h3 class="Title">
-            const titleMatch = inner.match(/<h3[^>]*class="[^"]*Title[^"]*"[^>]*>([\s\S]*?)<\/h3>/i);
+        while ((articleMatch = articleRegex.exec(html)) !== null) {
+            const block = articleMatch[1];
+
+            // Href: viene completo con el dominio
+            const hrefMatch = block.match(/href='(https:\/\/www\.anime-jl\.net\/anime\/[^']+)'/);
+            if (!hrefMatch) continue;
+            const href = hrefMatch[1];
+
+            // Título: <h3 class='Title'>Naruto Español Latino</h3>
+            const titleMatch = block.match(/<h3[^>]*class='Title'[^>]*>([^<]+)<\/h3>/);
             if (!titleMatch) continue;
+            const title = titleMatch[1].trim();
 
-            const title = titleMatch[1].replace(/<[^>]+>/g, "").trim();
-
-            // Imagen: src puede ser relativa (/storage/...) o absoluta
-            const imgMatch = inner.match(/<img[^>]+src="([^"]+)"/i);
+            // Imagen: src relativo /storage/...
+            const imgMatch = block.match(/<img[^>]+src='([^']+)'/);
             let image = imgMatch ? imgMatch[1] : "";
             if (image.startsWith("/")) {
                 image = "https://www.anime-jl.net" + image;
             }
 
-            if (title) {
-                results.push({ title: title, image: image, href: href });
-            }
+            results.push({ title: title, image: image, href: href });
         }
 
         return JSON.stringify(results);
@@ -61,7 +60,6 @@ async function searchResults(keyword) {
     }
 }
 
-// ── 2. extractDetails ────────────────────────────────────────
 async function extractDetails(url) {
     try {
         const response = await fetchv2(url, {
@@ -72,20 +70,19 @@ async function extractDetails(url) {
 
         let description = "Sin descripción disponible.";
         const descMatch = html.match(/<div[^>]*class="[^"]*sinopsis[^"]*"[^>]*>([\s\S]*?)<\/div>/i)
-            || html.match(/<div[^>]*class="[^"]*Description[^"]*"[^>]*>([\s\S]*?)<\/div>/i)
-            || html.match(/<p[^>]*class="[^"]*sinopsis[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
+            || html.match(/<div[^>]*class='[^']*sinopsis[^']*'[^>]*>([\s\S]*?)<\/div>/i)
+            || html.match(/<p[^>]*>([\s\S]{80,500}?)<\/p>/i);
         if (descMatch) {
             description = descMatch[1].replace(/<[^>]+>/g, "").trim();
         }
 
         let aliases = "";
-        const aliasMatch = html.match(/(?:titulo alterno|otros nombres|alias)[^<]*<[^>]*>([^<]+)/i);
+        const aliasMatch = html.match(/titulo alterno[^<]*<[^>]*>([^<]+)/i);
         if (aliasMatch) aliases = aliasMatch[1].trim();
 
         let airdate = "Desconocido";
-        const airMatch = html.match(/(?:año|emitido|estreno|fecha)[^<]*<[^>]*>([0-9]{4})/i)
-            || html.match(/>([0-9]{4})<\/(?:span|td|li|p)>/i);
-        if (airMatch) airdate = airMatch[1].trim();
+        const airMatch = html.match(/>(\d{4})<\/(?:span|td|li|p|strong)>/);
+        if (airMatch) airdate = airMatch[1];
 
         return JSON.stringify([{
             description: description,
@@ -95,15 +92,10 @@ async function extractDetails(url) {
 
     } catch (error) {
         console.log("extractDetails error: " + error);
-        return JSON.stringify([{
-            description: "Error al cargar detalles.",
-            aliases: "",
-            airdate: "Desconocido"
-        }]);
+        return JSON.stringify([{ description: "Error al cargar.", aliases: "", airdate: "Desconocido" }]);
     }
 }
 
-// ── 3. extractEpisodes ───────────────────────────────────────
 async function extractEpisodes(url) {
     try {
         const response = await fetchv2(url, {
@@ -113,17 +105,17 @@ async function extractEpisodes(url) {
         const html = await response.text();
 
         const episodes = [];
-        // Patrón: /anime/309/boruto-latino-v2/episodio-1
-        const epRegex = /href="(\/anime\/[^"]+\/episodio-(\d+))\/?"/gi;
+        // Patrón: href='https://www.anime-jl.net/anime/1049/naruto-latino-v2/episodio-1'
+        const epRegex = /href='(https:\/\/www\.anime-jl\.net\/anime\/[^']+\/episodio-(\d+))'/gi;
         const seen = new Set();
         let match;
 
         while ((match = epRegex.exec(html)) !== null) {
-            const epPath = match[1];
+            const epHref = match[1];
             const epNum = parseInt(match[2]);
-            if (seen.has(epPath)) continue;
-            seen.add(epPath);
-            episodes.push({ href: "https://www.anime-jl.net" + epPath, number: epNum });
+            if (seen.has(epHref)) continue;
+            seen.add(epHref);
+            episodes.push({ href: epHref, number: epNum });
         }
 
         episodes.sort((a, b) => a.number - b.number);
@@ -135,7 +127,6 @@ async function extractEpisodes(url) {
     }
 }
 
-// ── 4. extractStreamUrl ──────────────────────────────────────
 async function extractStreamUrl(url) {
     try {
         const response = await fetchv2(url, {
@@ -152,8 +143,8 @@ async function extractStreamUrl(url) {
         const mp4Match = html.match(/https?:\/\/[^\s"'<>]+\.mp4[^\s"'<>]*/i);
         if (mp4Match) return mp4Match[0];
 
-        // Intento 3: iframe → seguir al reproductor externo
-        const iframeMatch = html.match(/<iframe[^>]+src=["']([^"']+)["']/i);
+        // Intento 3: iframe externo
+        const iframeMatch = html.match(/<iframe[^>]+src=['"]([^'"]+)['"]/i);
         if (iframeMatch) {
             const iframeUrl = iframeMatch[1].startsWith("//")
                 ? "https:" + iframeMatch[1]
@@ -175,7 +166,7 @@ async function extractStreamUrl(url) {
             if (fileMatch) return fileMatch[1];
         }
 
-        // Intento 4: "file":"..." en la página del episodio
+        // Intento 4: "file":"..." en la página
         const fileMatch2 = html.match(/["'](?:file|src)["']\s*:\s*["'](https?:\/\/[^"']+\.(?:m3u8|mp4)[^"']*)["']/i);
         if (fileMatch2) return fileMatch2[1];
 
