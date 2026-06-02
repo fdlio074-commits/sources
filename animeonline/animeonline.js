@@ -1,111 +1,122 @@
-async function execute() {
-    let url = Sora.url || "";
+// Módulo Sora: Anime-JL
+// Estructura confirmada:
+// Anime: /anime/ID/nombre-del-anime
+// Episodio: /anime/ID/nombre-del-anime/episodio-N
 
-    // 1. Si la URL contiene '/episodio-', ejecuta la lógica de episodios
-    if (url.includes('/episodio-')) {
-        return await executeEpisode();
-    }
-    
-    // 2. Si la URL contiene '/anime/', ejecuta la lógica de detalles
-    if (url.includes('/anime/')) {
-        return await executeDetail();
-    }
-    
-    // 3. Por defecto, si está en la URL de búsqueda, ejecuta la búsqueda
-    return await executeSearch();
-}
+const AnimeJL = {
+    // --------------------------
+    // Obtener listado de animes / página principal
+    // --------------------------
+    async obtenerListado() {
+        const $ = await Sora.fetch(`${this.urlBase}/animes`);
+        const animes = [];
 
-// ==========================================
-// SECCIÓN: BÚSQUEDA
-// ==========================================
-async function executeSearch() {
-    let html = Sora.html; 
-    let results = [];
-    let elements = html.querySelectorAll('.anime-block, .card, .col-md-3, .col-6'); 
+        $(".anime-card, .item-anime, .card-anime").each((_, el) => {
+            const titulo = $(el).find("h2, h3, .titulo, .nombre").text().trim();
+            const enlace = $(el).find("a").attr("href");
+            const portada = $(el).find("img").attr("src");
+            const tipo = $(el).find(".etiqueta, .tipo").text().trim() || "Anime";
 
-    elements.forEach(el => {
-        let titleEl = el.querySelector('h3, .title, a, .card-title');
-        let imgEl = el.querySelector('img');
-        let linkEl = el.querySelector('a');
-
-        if (titleEl && linkEl) {
-            let animeUrl = linkEl.getAttribute('href');
-            if (animeUrl.startsWith('/')) {
-                animeUrl = 'https://anime-jl.net' + animeUrl;
+            if (enlace) {
+                animes.push({
+                    titulo,
+                    enlace: new URL(enlace, this.urlBase).href,
+                    portada: new URL(portada || "", this.urlBase).href,
+                    tipo
+                });
             }
-
-            results.push({
-                title: titleEl.textContent.trim(),
-                image: imgEl ? imgEl.getAttribute('src') : '',
-                url: animeUrl
-            });
-        }
-    });
-
-    return JSON.stringify(results);
-}
-
-// ==========================================
-// SECCIÓN: DETALLE
-// ==========================================
-async function executeDetail() {
-    let html = Sora.html;
-    
-    let title = html.querySelector('h1, .anime-title, .title').textContent.trim();
-    let description = html.querySelector('.synopsis, .description, p').textContent.trim();
-    let image = html.querySelector('.poster img, .anime-image, img').getAttribute('src');
-    
-    let episodes = [];
-    let epElements = html.querySelectorAll('a[href*="/episodio-"]');
-    
-    epElements.forEach((ep, index) => {
-        let epUrl = ep.getAttribute('href');
-        if (epUrl.startsWith('/')) {
-            epUrl = 'https://anime-jl.net' + epUrl;
-        }
-
-        episodes.push({
-            name: ep.textContent.trim() || `Episodio ${index + 1}`,
-            url: epUrl
         });
-    });
+        return animes;
+    },
 
-    return JSON.stringify({
-        title: title,
-        description: description,
-        image: image,
-        episodes: episodes.reverse() 
-    });
-}
+    // --------------------------
+    // Búsqueda: usa la ruta que definimos en el JSON
+    // --------------------------
+    async buscarAnime(texto) {
+        const $ = await Sora.fetch(`${this.urlBase}${this.searchBaseUrl}${encodeURIComponent(texto)}`);
+        const resultados = [];
 
-// ==========================================
-// SECCIÓN: EPISODIO
-// ==========================================
-async function executeEpisode() {
-    let html = Sora.html;
-    let videoSources = [];
-    let iframes = html.querySelectorAll('iframe, .video-player iframe');
-    
-    iframes.forEach(iframe => {
-        let src = iframe.getAttribute('src') || iframe.getAttribute('data-src');
-        if (src) {
-            if (src.startsWith('//')) src = 'https:' + src;
+        $(".result-item, .anime-item, .busqueda-item").each((_, el) => {
+            const titulo = $(el).find("h2, h3, .titulo").text().trim();
+            const enlace = $(el).find("a").attr("href");
+            const portada = $(el).find("img").attr("src");
+
+            if (enlace) {
+                resultados.push({
+                    titulo,
+                    enlace: new URL(enlace, this.urlBase).href,
+                    portada: new URL(portada || "", this.urlBase).href
+                });
+            }
+        });
+        return resultados;
+    },
+
+    // --------------------------
+    // Obtener episodios de un anime
+    // Ejemplo URL: https://anime-jl.net/anime/2339/rent-a-girlfriend-season-5-latino-v2
+    // --------------------------
+    async obtenerEpisodios(urlAnime) {
+        const $ = await Sora.fetch(urlAnime);
+        const episodios = [];
+
+        // Detecta todos los enlaces que terminan en /episodio-N
+        $("a[href*='/episodio-']").each((_, el) => {
+            const enlace = $(el).attr("href");
+            const texto = $(el).text().trim();
+            // Extrae solo el número del episodio
+            const numero = texto.replace(/\D/g, "") || (episodios.length + 1);
+
+            if (enlace) {
+                episodios.push({
+                    titulo: `Episodio ${numero}`,
+                    numero: parseInt(numero),
+                    enlace: new URL(enlace, this.urlBase).href
+                });
+            }
+        });
+
+        // Ordena los episodios del 1 en adelante
+        return episodios.sort((a, b) => a.numero - b.numero);
+    },
+
+    // --------------------------
+    // Obtener enlaces de reproducción y descarga
+    // Ejemplo URL: https://anime-jl.net/anime/2339/rent-a-girlfriend-season-5-latino-v2/episodio-2
+    // --------------------------
+    async obtenerEnlaces(urlEpisodio) {
+        const $ = await Sora.fetch(urlEpisodio);
+        const enlaces = {
+            reproduccion: [],
+            descarga: []
+        };
+
+        // Servidores de reproducción (iframes o datos en atributos)
+        $(".servidor, .opcion-servidor, .tab-pane").each((_, el) => {
+            const nombreServidor = $(el).find("button, .nombre-servidor").text().trim() || $(el).attr("id") || "Servidor";
+            const urlVideo = $(el).attr("data-url") || $(el).find("iframe").attr("src");
             
-            videoSources.push({
-                name: obtenerNombreServidor(src),
-                url: src,
-                isEmbed: true
+            if (urlVideo) {
+                enlaces.reproduccion.push({
+                    servidor: nombreServidor,
+                    url: new URL(urlVideo, this.urlBase).href
+                });
+            }
+        });
+
+        // Enlaces de descarga (específicamente Mega, como indica la web)
+        $("a[href*='mega.nz']").each((_, el) => {
+            const texto = $(el).text().trim();
+            enlaces.descarga.push({
+                servidor: "Mega",
+                calidad: texto.includes("HD") ? "HD" : "SD",
+                url: $(el).attr("href")
             });
-        }
-    });
+        });
 
-    return JSON.stringify(videoSources);
-}
+        return enlaces;
+    }
+};
 
-function obtenerNombreServidor(url) {
-    if (url.includes('mega.nz')) return 'Mega';
-    if (url.includes('ok.ru')) return 'Okru';
-    if (url.includes('fembed') || url.includes('feurl')) return 'Fembed';
-    if (url.includes('streamtape')) return 'Streamtape';
-    return 'Reproductor Externo';
-}
+// Registrar módulo
+Sora.registrarModulo(AnimeJL);
