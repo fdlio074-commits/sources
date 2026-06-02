@@ -5,13 +5,12 @@
         "name": "Fdlio",
         "icon": "https://avatars.githubusercontent.com/u/fdlio074-commits"
     },
-    "version": "1.0.2",
+    "version": "1.0.3",
     "language": "Español Latino",
     "streamType": "HLS",
     "quality": "1080p",
     "baseUrl": "https://anime-jl.net",
     "searchBaseUrl": "https://anime-jl.net/animes?q=%s",
-    "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
     "asyncJS": true,
     "type": "anime"
 }
