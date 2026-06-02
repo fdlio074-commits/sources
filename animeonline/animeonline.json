@@ -1,0 +1,28 @@
+{
+  "sourceName": "AnimeOnline Ninja",
+  "iconUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/icon.png",
+  "author": {
+    "name": "fdlio074",
+    "icon": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/icon.png"
+  },
+  "version": "1.0.0",
+  "language": "Spanish",
+  "streamType": "HLS",
+  "quality": "1080p",
+  "baseUrl": "https://ww3.animeonline.ninja/",
+  "searchBaseUrl": "https://ww3.animeonline.ninja/?s=%s",
+  "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
+  "type": "anime",
+  "asyncJS": true,
+  "softsub": true,
+  "downloadSupport": false,
+  "note": "Use external player.",
+  "supportsMojuru": true,
+  "supportsDartotsu": true,
+  "supportsSora": true,
+  "supportsLuna": true,
+  "supportsAnymex": true,
+  "supportsTsumi": true,
+  "supportsHiyoku": true,
+  "supportsShirox": true
+}
