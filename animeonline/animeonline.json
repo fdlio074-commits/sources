@@ -13,7 +13,7 @@
   "searchBaseUrl": "https://tioanime.com/buscar?q=%s",
   "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
   "asyncJS": false,
-  "streamAsyncJS": false,
+  "streamAsyncJS": true,
   "softsub": false,
   "type": "anime"
 }
