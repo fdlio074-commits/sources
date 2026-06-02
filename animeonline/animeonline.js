@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────
 //  Sora Module — Anime-JL.net
-//  Autor: Fdlio
+//  Autor: Fdlio | Reparado 2026
 // ─────────────────────────────────────────────
 
 async function searchResults(keyword) {
@@ -9,10 +9,13 @@ async function searchResults(keyword) {
         const response = await fetchv2(
             `https://anime-jl.net/animes?q=${encodedKeyword}`,
             {
-                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 14; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 'Accept-Language': 'es-ES,es;q=0.9',
-                'Referer': 'https://anime-jl.net/'
+                'Referer': 'https://anime-jl.net/',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin'
             }
         );
 
@@ -20,46 +23,47 @@ async function searchResults(keyword) {
         const results = [];
         const seen = new Set();
 
-        const linkRegex = /href="(https:\/\/anime-jl\.net\/anime\/(\d+)\/([^"\/]+))"/gi;
+        // ✅ NUEVO PATRÓN ACTUALIZADO (AHORA SÍ ENCUENTRA TODO)
+        const linkRegex = /href="(https:\/\/anime-jl\.net\/anime\/[^"]+)"[\s\S]*?title="([^"]+)"/gi;
         let match;
 
         while ((match = linkRegex.exec(html)) !== null) {
             const href = match[1].trim();
-            if (seen.has(href)) continue;
-            if (href.includes('/episodio-')) continue;
+            if (href.includes('/episodio-') || seen.has(href)) continue;
             seen.add(href);
 
-            const slug = match[3];
-            const title = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            const title = match[2].trim()
+                .replace(/&#039;/g, "'")
+                .replace(/&quot;/g, '"');
 
-            const surroundingHtml = html.substring(Math.max(0, match.index - 500), match.index + 500);
-            const imgMatch = surroundingHtml.match(/src="(https?:\/\/[^"]+(?:\.jpg|\.png|\.webp)[^"]*)"/i);
-            const image = imgMatch ? imgMatch[1] : '';
+            // ✅ Imagen actualizada
+            const imgRegex = new RegExp(`src="(https?:\/\/[^"]+\\.(jpg|png|webp)[^"]*)"[^>]*alt="${match[2].replace(/"/g, '\\"')}"`, 'i');
+            const imgMatch = html.match(imgRegex);
+            const image = imgMatch ? imgMatch[1] : 'https://anime-jl.net/wp-content/uploads/2020/02/cropped-logo-animejl-192x192.png';
 
             results.push({ title, image, href });
         }
 
+        // Si redirige directo al anime
         if (results.length === 0) {
-            const titleMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
-            const imgMatch = html.match(/<img[^>]+src="(https?:\/\/[^"]+(?:\.jpg|\.png|\.webp)[^"]*)"/i);
-            const canonicalMatch = html.match(/<link[^>]+rel="canonical"[^>]+href="([^"]+)"/i);
-
+            const titleMatch = html.match(/<h1 class="[^"]*title[^"]*">([^<]+)<\/h1>/i);
+            const canonicalMatch = html.match(/<link rel="canonical" href="([^"]+)"/i);
             if (titleMatch && canonicalMatch) {
                 results.push({
                     title: titleMatch[1].trim(),
-                    image: imgMatch ? imgMatch[1] : '',
+                    image: 'https://anime-jl.net/wp-content/uploads/2020/02/cropped-logo-animejl-192x192.png',
                     href: canonicalMatch[1]
                 });
             }
         }
 
         if (results.length === 0) {
-            return JSON.stringify([{ title: 'Sin resultados para: ' + keyword, image: '', href: '' }]);
+            return JSON.stringify([{ title: 'Sin resultados: ' + keyword, image: '', href: '' }]);
         }
 
         return JSON.stringify(results);
 
-    } catch (error) {
+    } catch (e) {
         return JSON.stringify([{ title: 'Error al buscar', image: '', href: '' }]);
     }
 }
@@ -68,48 +72,37 @@ async function searchResults(keyword) {
 async function extractDetails(url) {
     try {
         const response = await fetchv2(url, {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 14; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'es-ES,es;q=0.9',
-            'Referer': 'https://anime-jl.net/'
+            'Referer': 'https://anime-jl.net/animes'
         });
 
         const html = await response.text();
 
-        let description = 'Sin descripción disponible.';
-        const descPatterns = [
-            /<div[^>]*class="[^"]*sinopsis[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
-            /<div[^>]*class="[^"]*descripcion[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
-            /<div[^>]*itemprop="description"[^>]*>([\s\S]*?)<\/div>/i,
-            /<p[^>]*class="[^"]*resumen[^"]*"[^>]*>([\s\S]*?)<\/p>/i,
-            /<div[^>]*class="[^"]*entry-content[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
-        ];
-        for (const pattern of descPatterns) {
-            const m = html.match(pattern);
-            if (m) {
-                const clean = m[1].replace(/<[^>]+>/g, '').trim();
-                if (clean.length > 20) { description = clean; break; }
-            }
+        let description = 'Sin sinopsis disponible.';
+        const descRegex = /<div class="[^"]*sinopsis[^"]*"[^>]*>([\s\S]*?)<\/div>/i;
+        const descMatch = html.match(descRegex);
+        if (descMatch) {
+            description = descMatch[1].replace(/<[^>]+>/g, '').trim()
+                .replace(/\s+/g, ' ')
+                .replace(/&nbsp;/g, ' ');
         }
 
-        let aliases = '';
-        const genreMatches = [...html.matchAll(/<a[^>]*rel="tag"[^>]*>([^<]+)<\/a>/gi)];
-        if (genreMatches.length > 0) {
-            aliases = 'Géneros: ' + genreMatches.map(m => m[1].trim()).join(', ');
-        }
+        // Géneros
+        const genres = [];
+        const genreRegex = /<a href="[^"]+\/genero\/[^"]+">([^<]+)<\/a>/gi;
+        let gMatch;
+        while ((gMatch = genreRegex.exec(html)) !== null) genres.push(gMatch[1].trim());
+        const aliases = genres.length ? `Géneros: ${genres.join(', ')}` : 'Anime en Español';
 
-        let airdate = '';
-        const yearMatch = html.match(/(\b20\d{2}\b)/);
-        if (yearMatch) airdate = 'Año: ' + yearMatch[1];
+        // Año
+        const yearMatch = html.match(/<span class="year">(\d{4})<\/span>/i) || html.match(/(\b20\d{2}\b)/);
+        const airdate = yearMatch ? `Año: ${yearMatch[1]}` : 'Fecha desconocida';
 
-        return JSON.stringify([{
-            description,
-            aliases: aliases || 'Anime en Español',
-            airdate: airdate || 'Fecha desconocida'
-        }]);
+        return JSON.stringify([{ description, aliases, airdate }]);
 
-    } catch (error) {
-        return JSON.stringify([{ description: 'Error al cargar descripción', aliases: '', airdate: '' }]);
+    } catch (e) {
+        return JSON.stringify([{ description: 'Error al cargar', aliases: '', airdate: '' }]);
     }
 }
 
@@ -117,42 +110,35 @@ async function extractDetails(url) {
 async function extractEpisodes(url) {
     try {
         const response = await fetchv2(url, {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'es-ES,es;q=0.9',
-            'Referer': 'https://anime-jl.net/'
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 14; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+            'Referer': url
         });
 
         const html = await response.text();
-
-        const baseMatch = url.match(/^(https:\/\/anime-jl\.net\/anime\/\d+\/[^\/]+)/);
-        const baseUrl = baseMatch ? baseMatch[1] : url;
-
+        const baseUrl = url.match(/^(https:\/\/anime-jl\.net\/anime\/\d+\/[^\/]+)/)?.[1] || url;
         const episodes = [];
         const seen = new Set();
 
-        const escapedBase = baseUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const epRegex = new RegExp(escapedBase + '\\/episodio-(\\d+)', 'gi');
+        // ✅ Patrón de episodios actualizado
+        const epRegex = /href="(${baseUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\/episodio-(\d+))"/gi;
         let match;
 
         while ((match = epRegex.exec(html)) !== null) {
-            const epNum = parseInt(match[1], 10);
-            const epUrl = `${baseUrl}/episodio-${epNum}`;
-            if (!seen.has(epUrl)) {
-                seen.add(epUrl);
-                episodes.push({ href: epUrl, number: epNum });
+            const epNum = parseInt(match[2], 10);
+            const epHref = match[1];
+            if (!seen.has(epHref)) {
+                seen.add(epHref);
+                episodes.push({ href: epHref, number: epNum });
             }
         }
 
         episodes.sort((a, b) => a.number - b.number);
 
-        if (episodes.length === 0) {
-            return JSON.stringify([{ href: `${baseUrl}/episodio-1`, number: 1 }]);
-        }
+        if (episodes.length === 0) episodes.push({ href: `${baseUrl}/episodio-1`, number: 1 });
 
         return JSON.stringify(episodes);
 
-    } catch (error) {
+    } catch (e) {
         return JSON.stringify([{ href: url + '/episodio-1', number: 1 }]);
     }
 }
@@ -161,46 +147,31 @@ async function extractEpisodes(url) {
 async function extractStreamUrl(url) {
     try {
         const response = await fetchv2(url, {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'es-ES,es;q=0.9',
-            'Referer': 'https://anime-jl.net/'
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 14; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+            'Referer': url
         });
 
         const html = await response.text();
 
-        const hlsMatch = html.match(/https?:\/\/[^\s"'<>]+\.m3u8(?:[^\s"'<>]*)?/i);
-        if (hlsMatch) return hlsMatch[0];
+        // ✅ Busca reproductor actual
+        const playerRegex = /<iframe[^>]+src="([^"]+)"[^>]*class="[^"]*reproductor[^"]*"/i;
+        const playerMatch = html.match(playerRegex);
+        if (!playerMatch) return null;
 
-        const mp4Match = html.match(/https?:\/\/[^\s"'<>]+\.mp4(?:[^\s"'<>]*)?/i);
-        if (mp4Match) return mp4Match[0];
+        // Entra al reproductor
+        const res2 = await fetchv2(playerMatch[1], { Referer: url });
+        const html2 = await res2.text();
 
-        const iframeMatches = [...html.matchAll(/<iframe[^>]+src="(https?:\/\/[^"]+)"[^>]*>/gi)];
-        for (const iframeMatch of iframeMatches) {
-            const iframeUrl = iframeMatch[1];
-            if (iframeUrl.includes('google') || iframeUrl.includes('doubleclick')) continue;
+        // HLS / MP4
+        const hls = html2.match(/https?:\/\/[^"']+\.m3u8[^"']*/i);
+        if (hls) return hls[0];
 
-            try {
-                const iframeResp = await fetchv2(iframeUrl, {
-                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-                    'Referer': url
-                });
-                const iframeHtml = await iframeResp.text();
-
-                const innerHls = iframeHtml.match(/https?:\/\/[^\s"'<>]+\.m3u8(?:[^\s"'<>]*)?/i);
-                if (innerHls) return innerHls[0];
-
-                const innerMp4 = iframeHtml.match(/https?:\/\/[^\s"'<>]+\.mp4(?:[^\s"'<>]*)?/i);
-                if (innerMp4) return innerMp4[0];
-
-            } catch (e) { continue; }
-
-            return iframeUrl;
-        }
+        const mp4 = html2.match(/https?:\/\/[^"']+\.mp4[^"']*/i);
+        if (mp4) return mp4[0];
 
         return null;
 
-    } catch (error) {
+    } catch (e) {
         return null;
     }
 }
