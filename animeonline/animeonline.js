@@ -1,5 +1,6 @@
 // ─────────────────────────────────────────────
 //  Sora Module — Anime-JL.net
+//  Autor: Fdlio
 //  Idioma: Español Latino / Sub Español
 //  Modo: asyncJS
 // ─────────────────────────────────────────────
@@ -8,7 +9,7 @@ async function searchResults(keyword) {
     try {
         const encodedKeyword = encodeURIComponent(keyword);
         const response = await fetchv2(
-            `https://anime-jl.net/?s=${encodedKeyword}`,
+            `https://anime-jl.net/animes?q=${encodedKeyword}`,
             {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
                 'Referer': 'https://anime-jl.net/'
@@ -17,33 +18,32 @@ async function searchResults(keyword) {
 
         const html = await response.text();
         const results = [];
-
-        // Patrón de URL: /anime/{id}/{slug}
-        const itemRegex = /<a\s+href="(https:\/\/anime-jl\.net\/anime\/\d+\/[^"]+?)"[^>]*>\s*<img[^>]+src="([^"]+)"[^>]*>/gi;
-        const titleRegex = /<h2[^>]*>\s*<a[^>]+href="https:\/\/anime-jl\.net\/anime\/\d+\/[^"]*"[^>]*>([^<]+)<\/a>/gi;
-
-        // Extraer bloques de anime de la página de resultados
-        const blockRegex = /class="[^"]*post[^"]*"[\s\S]*?href="(https:\/\/anime-jl\.net\/anime\/\d+\/[^"]+)"[\s\S]*?src="([^"]+)"[\s\S]*?<h\d[^>]*>\s*(?:<a[^>]*>)?([^<\n]+)/gi;
-        let match;
         const seen = new Set();
+
+        // Patrón principal: enlaces a /anime/{id}/{slug}
+        const blockRegex = /href="(https:\/\/anime-jl\.net\/anime\/\d+\/(?!.*episodio)[^"]+)"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"[\s\S]*?<\/a>/gi;
+        let match;
 
         while ((match = blockRegex.exec(html)) !== null) {
             const href = match[1].trim();
             if (seen.has(href)) continue;
-            // Saltar URLs que sean de episodios
-            if (href.includes('/episodio-')) continue;
             seen.add(href);
+
+            // Extraer título del atributo alt de la imagen o del title del enlace
+            const altMatch = match[0].match(/alt="([^"]+)"/i) || match[0].match(/title="([^"]+)"/i);
+            const title = altMatch ? altMatch[1].trim() : href.split('/').pop().replace(/-/g, ' ');
+
             results.push({
-                title: match[3].replace(/<[^>]+>/g, '').trim(),
+                title: title,
                 image: match[2].trim(),
                 href: href
             });
         }
 
-        // Fallback más simple si el anterior no encuentra nada
+        // Fallback: buscar enlaces con título visible
         if (results.length === 0) {
-            const simpleRegex = /<a\s[^>]*href="(https:\/\/anime-jl\.net\/anime\/\d+\/(?!.*episodio)[^"]+)"[^>]*title="([^"]+)"[^>]*>/gi;
-            while ((match = simpleRegex.exec(html)) !== null) {
+            const fallback = /href="(https:\/\/anime-jl\.net\/anime\/\d+\/(?!.*episodio)[^"]+)"[^>]*>([^<]{3,})<\/a>/gi;
+            while ((match = fallback.exec(html)) !== null) {
                 const href = match[1].trim();
                 if (seen.has(href)) continue;
                 seen.add(href);
@@ -77,7 +77,7 @@ async function extractDetails(url) {
 
         const html = await response.text();
 
-        // Descripción / sinopsis — varios patrones posibles
+        // Descripción
         let description = 'Sin descripción disponible.';
         const descPatterns = [
             /<div[^>]*class="[^"]*sinopsis[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
@@ -101,12 +101,10 @@ async function extractDetails(url) {
             aliases = 'Géneros: ' + genreMatches.map(m => m[1].trim()).join(', ');
         }
 
-        // Año de emisión
+        // Año
         let airdate = '';
         const yearMatch = html.match(/(\b20\d{2}\b)/);
-        if (yearMatch) {
-            airdate = 'Año: ' + yearMatch[1];
-        }
+        if (yearMatch) airdate = 'Año: ' + yearMatch[1];
 
         return JSON.stringify([{
             description: description,
@@ -134,20 +132,14 @@ async function extractEpisodes(url) {
 
         const html = await response.text();
 
-        // URL base del anime: https://anime-jl.net/anime/{id}/{slug}
-        // Episodios: https://anime-jl.net/anime/{id}/{slug}/episodio-{n}
         const baseMatch = url.match(/^(https:\/\/anime-jl\.net\/anime\/\d+\/[^\/]+)/);
         const baseUrl = baseMatch ? baseMatch[1] : url;
 
         const episodes = [];
         const seen = new Set();
 
-        // Buscar todos los enlaces de episodios en la página
-        const epRegex = new RegExp(
-            baseUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
-            '\\/episodio-(\\d+)',
-            'gi'
-        );
+        const escapedBase = baseUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const epRegex = new RegExp(escapedBase + '\\/episodio-(\\d+)', 'gi');
         let match;
 
         while ((match = epRegex.exec(html)) !== null) {
@@ -159,11 +151,9 @@ async function extractEpisodes(url) {
             }
         }
 
-        // Ordenar de menor a mayor
         episodes.sort((a, b) => a.number - b.number);
 
         if (episodes.length === 0) {
-            // Fallback: al menos el episodio 1
             return JSON.stringify([{ href: `${baseUrl}/episodio-1`, number: 1 }]);
         }
 
@@ -185,7 +175,7 @@ async function extractStreamUrl(url) {
 
         const html = await response.text();
 
-        // 1. HLS directo (.m3u8)
+        // 1. HLS directo
         const hlsMatch = html.match(/https?:\/\/[^\s"'<>]+\.m3u8(?:[^\s"'<>]*)?/i);
         if (hlsMatch) return hlsMatch[0];
 
@@ -193,12 +183,10 @@ async function extractStreamUrl(url) {
         const mp4Match = html.match(/https?:\/\/[^\s"'<>]+\.mp4(?:[^\s"'<>]*)?/i);
         if (mp4Match) return mp4Match[0];
 
-        // 3. Buscar iframe de reproductores embebidos
+        // 3. Iframes de reproductores
         const iframeMatches = [...html.matchAll(/<iframe[^>]+src="(https?:\/\/[^"]+)"[^>]*>/gi)];
         for (const iframeMatch of iframeMatches) {
             const iframeUrl = iframeMatch[1];
-
-            // Saltar iframes de ads/google
             if (iframeUrl.includes('google') || iframeUrl.includes('doubleclick')) continue;
 
             try {
@@ -214,11 +202,8 @@ async function extractStreamUrl(url) {
                 const innerMp4 = iframeHtml.match(/https?:\/\/[^\s"'<>]+\.mp4(?:[^\s"'<>]*)?/i);
                 if (innerMp4) return innerMp4[0];
 
-            } catch (e) {
-                continue;
-            }
+            } catch (e) { continue; }
 
-            // Retornar la URL del iframe como último recurso
             return iframeUrl;
         }
 
