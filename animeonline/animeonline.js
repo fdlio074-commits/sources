@@ -1,114 +1,93 @@
-function searchResults(html) {
-    const results = [];
-    const baseUrl = "https://hentaila.com";
-
-    // Cards de resultados: <article class="group/item relative text-body">
-    // con <h3 class="...text-lead">TITULO</h3>
-    // con <img ... src="https://cdn.hentaila.com/covers/ID.jpg">
-    // con <a ... href="/media/slug">
-    const itemRegex = /<article class="group\/item relative text-body"[\s\S]*?<\/article>/g;
-    const items = html.match(itemRegex) || [];
-
-    items.forEach((item) => {
-        const titleMatch = item.match(/<h3[^>]*class="[^"]*text-lead[^"]*"[^>]*>([^<]+)<\/h3>/);
-        const imgMatch = item.match(/src="(https:\/\/cdn\.hentaila\.com\/covers\/[^"]+)"/);
-        const hrefMatch = item.match(/href="(\/media\/[^"\/]+)"[^>]*><span class="sr-only">/);
-
-        const title = titleMatch ? titleMatch[1].trim() : '';
-        const image = imgMatch ? imgMatch[1] : '';
-        const href = hrefMatch ? baseUrl + hrefMatch[1] : '';
-
-        if (title && href) {
-            results.push({
-                title: title,
-                image: image,
-                href: href
-            });
-        }
-    });
-
-    return results;
-}
-
-function extractDetails(html) {
-    const details = [];
-
-    // Descripción: <div class="entry line-clamp-4 ..."><p>TEXTO</p></div>
-    const descMatch = html.match(/<div class="entry[^"]*"[^>]*>[\s\S]*?<p>([\s\S]*?)<\/p>/);
-    let description = descMatch ? descMatch[1].trim() : '';
-
-    // Año: <span>2025</span> dentro del header de info
-    const yearMatch = html.match(/<span>(\d{4})<\/span>/);
-    let airdate = yearMatch ? yearMatch[1] : '';
-
-    // Tipo como alias: OVA, TV, etc
-    const typeMatch = html.match(/<span>(OVA|TV|Movie|Pelicula)<\/span>/);
-    let aliases = typeMatch ? typeMatch[1] : 'N/A';
-
-    if (description) {
-        details.push({
-            description: description,
-            aliases: aliases,
-            airdate: airdate
-        });
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="../../favicon.ico" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="darkreader-lock" />
+		<link rel="preload" href="/fonts/satoshi-400.woff2" as="font" type="font/woff2" crossorigin />
+		<link rel="preload" href="/fonts/satoshi-700.woff2" as="font" type="font/woff2" crossorigin />
+		
+		<link href="../../_app/immutable/assets/common.C7oI0b2h.css" rel="stylesheet">
+		<link href="../../_app/immutable/assets/ads_728x90.DGf6yL8-.css" rel="stylesheet">
+		<link href="../../_app/immutable/assets/comments-box.DQItaaCt.css" rel="stylesheet"><!--1br2sqw--><!--[--><script src="//cdn.tsyndicate.com/sdk/v1/video.instant.message.js"></script> <script>
+			TSVideoInstantMessage({
+				spot: '59a7f85893494883ad982f9360f28a07',
+				width: '10%',
+				mobileWidth: '20%',
+				displayMode: 'capped',
+				cappedAction: 'click',
+				cappedValueInMinutes: 10,
+				showCTAButton: true,
+				hideOnComplete: false
+			});
+		</script><!--]--><!----><!--xw9chl--><!--[!--><!--]--> <!----><script>(function setInitialMode({ defaultMode = "system", themeColors: themeColors2, darkClassNames: darkClassNames2 = ["dark"], lightClassNames: lightClassNames2 = [], defaultTheme = "", modeStorageKey: modeStorageKey2 = "mode-watcher-mode", themeStorageKey: themeStorageKey2 = "mode-watcher-theme" }) {
+  const rootEl = document.documentElement;
+  const mode = localStorage.getItem(modeStorageKey2) ?? defaultMode;
+  const theme = localStorage.getItem(themeStorageKey2) ?? defaultTheme;
+  const light = mode === "light" || mode === "system" && window.matchMedia("(prefers-color-scheme: light)").matches;
+  if (light) {
+    if (darkClassNames2.length)
+      rootEl.classList.remove(...darkClassNames2.filter(Boolean));
+    if (lightClassNames2.length)
+      rootEl.classList.add(...lightClassNames2.filter(Boolean));
+  } else {
+    if (lightClassNames2.length)
+      rootEl.classList.remove(...lightClassNames2.filter(Boolean));
+    if (darkClassNames2.length)
+      rootEl.classList.add(...darkClassNames2.filter(Boolean));
+  }
+  rootEl.style.colorScheme = light ? "light" : "dark";
+  if (themeColors2) {
+    const themeMetaEl = document.querySelector('meta[name="theme-color"]');
+    if (themeMetaEl) {
+      themeMetaEl.setAttribute("content", mode === "light" ? themeColors2.light : themeColors2.dark);
     }
+  }
+  if (theme) {
+    rootEl.setAttribute("data-theme", theme);
+    localStorage.setItem(themeStorageKey2, theme);
+  }
+  localStorage.setItem(modeStorageKey2, mode);
+})({"defaultMode":"dark","darkClassNames":["dark"],"lightClassNames":[],"defaultTheme":"","modeStorageKey":"mode-watcher-mode","themeStorageKey":"mode-watcher-theme"});</script><!----><!----><!--1dg221c--><meta name="description" content="Ver el episodio 2 de Iribitari Gal ni Manko Tsukawasete Morau Hanashi en HD completamente GRATIS"/> <meta name="keywords" content="Iribitari Gal ni Manko Tsukawasete Morau Hanashi episodio 2, ver episodio 2 sub español, Iribitari Gal ni Manko Tsukawasete Morau Hanashi HD episodio 2, Iribitari Gal ni Manko Tsukawasete Morau Hanashi 2 online gratis"/> <meta name="robots" content="index,follow"/> <meta property="og:type" content="article"/> <meta property="og:title" content="Ver Iribitari Gal ni Manko Tsukawasete Morau Hanashi 2 Online Sub Español | HentaiLa.com"/> <meta property="og:description" content="Ya está aquí, el episodio 2 de tu hentai favorito Iribitari Gal ni Manko Tsukawasete Morau Hanashi, alista ese papel higiénico y disfruta una linda noche."/> <meta property="og:image" content="https://cdn.hentaila.com/covers/1089.jpg"/> <meta property="og:site_name" content="HentaiLA"/> <meta property="og:url" content="https://hentaila.com/media/iribitari-gal-ni-manko-tsukawasete-morau-hanashi/2"/> <link rel="canonical" href="https://hentaila.com/media/iribitari-gal-ni-manko-tsukawasete-morau-hanashi/2"/> <!--[--><script type="text/javascript" src="//cdn.tsyndicate.com/sdk/v1/p.js" data-ts-spot="682ea37c4fdc44eabd44af907df26332" data-ts-count="3" data-ts-type="tabup" data-ts-session-duration="3600" data-ts-delay="30" async defer></script><!----><!--]--><!----><title>Iribitari Gal ni Manko Tsukawasete Morau Hanashi Episodio 2 HentaiLA - Ver Hentai en Español | HentaiLA 🔥</title>
+	</head>
+	<body>
+		<div class="flex min-h-full flex-col"><!--[--><!--[--><!----><!--[--><!----><!--[!--><!--]--><!----> <!--[!--><!--]--><!----> <!----><!--[!--><!--]--><!----><!----><!----> <section aria-label="Notifications alt+T" tabindex="-1" aria-live="polite" aria-relevant="additions text" aria-atomic="false" class="svelte-1485xm"><!--[!--><!--]--></section><!----> <header class="bg-body sticky top-0 z-40"><!--[!--><!--]--><!----> <div class="group/search from-mute relative container flex items-center justify-between gap-6 bg-radial-[closest-side] py-4 lg:py-6"><div class="-mx-1 max-xl:group-has-[#box-search.show]/search:invisible sm:relative md:hidden"><!----><!----><!--$s1--><!--[!--><button class="btn btn-sm text-lead relative p-0 " id="bits-s1" aria-haspopup="menu" aria-expanded="false" data-state="closed" data-dropdown-menu-trigger="" type="button"><span class="ic-menu-05 text-2xl in-aria-expanded:hidden" aria-hidden="true"></span> <span class="ic-x-close hidden text-2xl in-aria-expanded:flex" aria-hidden="true"></span><!----></button><!--]--><!----><!----> <!----><!--$s2--><!--[!--><!--[--><!--[!--><!--]--><!--]--><!--]--><!----><!----><!----><!----></div> <div class="flex flex-1 gap-6 xl:flex-none"><figure class="max-xl:group-has-[#box-search.show]/search:invisible"><a href="/hub"><img class="dark:hidden" width="145" height="40" src="/img/logo.svg" alt="HentaiLA"/> <img class="hidden dark:block" width="145" height="40" src="/img/logo-dark.svg" alt="HentaiLA"/></a></figure> <div id="box-search" class="absolute end-16 start-6 top-4 z-10 me-2 hidden lg:top-6 xl:relative xl:start-0 xl:top-0 xl:block xl:w-72 [&amp;amp;.show]:block"><form class="ic-search-md ic-before flex before:pointer-events-none before:absolute before:start-2.5 before:top-2.5 before:text-xl" method="get" action="/catalogo" autocomplete="off"><input class="min-h-10 border-line/40 bg-soft pe-24 ps-10 lg:text-sm" type="search" name="search" placeholder="Buscar hentai..."/> <a class="btn btn-line btn-2xs ic-settings-04 ic-before absolute end-2 top-2 rounded before:text-base" href="/catalogo">Filtros</a> <!--[!--><!--]--></form></div><!----></div> <div class="flex gap-2"><nav class="hidden max-xl:group-has-[#box-search.show]/search:invisible lg:block"><ul class="flex"><li><a class="btn btn-item btn-sm" href="https://discord.gg/TbrpK9PG2D" target="_blank" rel="noopener" aria-label="Discord"><span class="ic-discord text-xl"></span></a></li> <li><a class="btn btn-item btn-sm" href="https://x.com/HentaiLA5" target="_blank" rel="noopener" aria-label="X"><span class="ic-twitter text-xl"></span></a></li> <li><a class="btn btn-item btn-sm ic-layers-two-01 ic-before before:text-xl" href="/catalogo">Catalogo de Hentai</a></li></ul></nav> <div class="flex gap-2"><!--[!--><!--]--> <button class="btn btn-sm btn-line-o btn-mode p-0 text-xl max-xl:group-has-[#box-search.show]/search:invisible" type="button" aria-label="Light/Dark"><span class="ic-sun hidden dark:block" aria-hidden="true"></span> <span class="ic-moon-02 dark:hidden" aria-hidden="true"></span></button> <!--[--><button class="btn btn-sm btn-line btn-modal hidden p-0 text-xl max-xl:group-has-[#box-search.show]/search:invisible lg:flex" aria-label="Iniciar sesión"><span class="ic-user-01" aria-hidden="true"></span></button><!--]--> <button class="btn btn-sm btn-line btn-toggle p-0 text-xl xl:hidden" type="button" aria-label="Buscar"><span class="ic-search-md [.on>_&amp;]:hidden" aria-hidden="true"></span> <span class="ic-x-close hidden [.on>_&amp;]:block" aria-hidden="true"></span></button></div></div></div></header> <!--[--><!----><!----><div class="container grid items-start gap-6 lg:grid-cols-6 xl:grid-cols-12"><div class="grid items-start gap-6 lg:col-span-4 xl:col-span-9 xl:pe-6"><div class="max-w-182 sm:mx-0 sm:w-full md:mx-auto"><!----><div class="banner-container svelte-9zb2xj"><!--[!--><!--]--></div><!----><!----></div> <div class="overflow-hidden rounded-lg bg-black"><!--[--><!----><iframe class="aspect-video h-auto min-h-64 w-full object-cover" width="560" height="315" src="https://cdn.hvidserv.com/play/327a0450fc413ca8dad2882c2a8cb067" title="Episodio Embebido" frameborder="0" allowfullscreen></iframe><!----><!--]--></div> <div class="flex flex-wrap gap-3"><!--[--><a class="btn btn-line-o btn-sm tooltip-top max-sm:flex-1 max-sm:px-0" href="/media/iribitari-gal-ni-manko-tsukawasete-morau-hanashi/1"><span class="ic-chevron-left text-xl" aria-hidden="true"></span> <span class="text-xs">Anterior</span></a><!--]--> <!--[--><a class="btn btn-line-o btn-sm tooltip-top max-sm:flex-1 max-sm:px-0" href="/media/iribitari-gal-ni-manko-tsukawasete-morau-hanashi/3"><span class="text-xs">Siguiente</span> <span class="ic-chevron-right text-xl" aria-hidden="true"></span></a><!--]--> <div class="flex gap-2 sm:ms-auto sm:me-0"><!--[!--><button class="btn btn-sm btn-line tooltip-top" type="button" aria-label="Marcar como visto"><span class="ic-eye text-xl" aria-hidden="true"></span></button><!--]--> <button class="btn btn-sm btn-line tooltip-top sm:ms-auto sm:me-0" type="button" aria-label="Descargar"><span class="ic-download-01 text-xl" aria-hidden="true"></span></button></div></div> <div class="border-line bg-mute before:via-edge dark:border-soft relative flex flex-col rounded-lg border before:absolute before:inset-x-6 before:top-0 before:h-px before:bg-linear-to-r before:from-transparent dark:before:opacity-50"><!--[--><div class="border-line dark:border-soft flex gap-3 border-b p-4 last:border-b-0"><span class="ic-sub ic-before before:text-main gap-2 py-1.5 text-sm font-bold uppercase before:text-xl">SUB</span> <div class="flex flex-1 flex-wrap gap-2"><!--[--><button class="btn btn-xs font-bold bg-main text-fore" type="button">VIP</button><button class="btn btn-xs font-bold bg-line text-subs hover:bg-edge hover:text-lead" type="button">Mega</button><button class="btn btn-xs font-bold bg-line text-subs hover:bg-edge hover:text-lead" type="button">YourUpload</button><button class="btn btn-xs font-bold bg-line text-subs hover:bg-edge hover:text-lead" type="button">MP4Upload</button><button class="btn btn-xs font-bold bg-line text-subs hover:bg-edge hover:text-lead" type="button">Netu</button><button class="btn btn-xs font-bold bg-line text-subs hover:bg-edge hover:text-lead" type="button">VidHide</button><button class="btn btn-xs font-bold bg-line text-subs hover:bg-edge hover:text-lead" type="button">Voe</button><!--]--></div></div><!--]--></div></div> <div class="flex h-full flex-col lg:col-span-2 xl:col-span-3"><div class="mx-auto mb-2 inline-flex h-62.5 w-75 max-w-full overflow-hidden rounded"><!----><iframe title="Ads 300x250" width="300" height="250" scrolling="no" frameborder="0" src="https://a.adtng.com/get/10016593?time=1769789618858" allowtransparency="" marginheight="0" marginwidth="0" name="spot_id_10016593"></iframe><!----><!----></div> <div class="border-line bg-mute before:via-edge dark:border-soft relative flex flex-1 flex-col items-start gap-4 self-stretch rounded-lg border p-4 before:absolute before:inset-x-6 before:top-0 before:h-px before:bg-linear-to-r before:from-transparent dark:before:opacity-50"><div class="flex flex-wrap items-center justify-between gap-4"><div class="grid items-start gap-1"><p class="text-subs text-xs font-bold">Estás viendo</p> <div class="text-lead font-bold max-lg:line-clamp-2 lg:truncate"><!--[!-->Episodio 2<!--]--></div></div></div> <!--[!--><!--]--> <div class="group show relative -m-1 w-full flex-1"><div id="episodes-list" class="grid-cols-repeat inset-0 grid place-content-start gap-2 overflow-auto p-1 [--size:2.5rem] group-[.show]:grid-flow-row group-[.show]:auto-rows-max group-[.show]:grid-cols-1 max-lg:max-h-72 lg:absolute"><!--[!--><!--[--><a class="btn btn-soft2 btn-sm p-2 text-xs" href="/media/iribitari-gal-ni-manko-tsukawasete-morau-hanashi/1"><span class="font-bold group-[.show]:hidden">1</span> <span class="hidden w-full items-center gap-3 group-[.show]:flex"><span class="relative w-14 shrink-0 rounded-lg bg-black"><img class="aspect-square w-full rounded-lg object-cover" width="92" height="130" src="https://cdn.hentaila.com/screenshots/1089/1.jpg" alt="backdrop"/></span> <span class="flex-1"><div class="line-clamp-1 text-sm font-bold">Episodio 1</div> <div class="line-clamp-1 text-xs">Iribitari Gal ni Manko Tsukawasete Morau Hanashi</div></span></span></a><a class="btn btn-soft2 btn-sm p-2 text-xs on" id="selected-episode" href="/media/iribitari-gal-ni-manko-tsukawasete-morau-hanashi/2"><span class="font-bold group-[.show]:hidden">2</span> <span class="hidden w-full items-center gap-3 group-[.show]:flex"><span class="relative w-14 shrink-0 rounded-lg bg-black"><img class="aspect-square w-full rounded-lg object-cover" width="92" height="130" src="https://cdn.hentaila.com/screenshots/1089/2.jpg" alt="backdrop"/></span> <span class="flex-1"><div class="line-clamp-1 text-sm font-bold">Episodio 2</div> <div class="line-clamp-1 text-xs">Iribitari Gal ni Manko Tsukawasete Morau Hanashi</div></span></span></a><a class="btn btn-soft2 btn-sm p-2 text-xs" href="/media/iribitari-gal-ni-manko-tsukawasete-morau-hanashi/3"><span class="font-bold group-[.show]:hidden">3</span> <span class="hidden w-full items-center gap-3 group-[.show]:flex"><span class="relative w-14 shrink-0 rounded-lg bg-black"><img class="aspect-square w-full rounded-lg object-cover" width="92" height="130" src="https://cdn.hentaila.com/screenshots/1089/3.jpg" alt="backdrop"/></span> <span class="flex-1"><div class="line-clamp-1 text-sm font-bold">Episodio 3</div> <div class="line-clamp-1 text-xs">Iribitari Gal ni Manko Tsukawasete Morau Hanashi</div></span></span></a><a class="btn btn-soft2 btn-sm p-2 text-xs" href="/media/iribitari-gal-ni-manko-tsukawasete-morau-hanashi/4"><span class="font-bold group-[.show]:hidden">4</span> <span class="hidden w-full items-center gap-3 group-[.show]:flex"><span class="relative w-14 shrink-0 rounded-lg bg-black"><img class="aspect-square w-full rounded-lg object-cover" width="92" height="130" src="https://cdn.hentaila.com/screenshots/1089/4.jpg" alt="backdrop"/></span> <span class="flex-1"><div class="line-clamp-1 text-sm font-bold">Episodio 4</div> <div class="line-clamp-1 text-xs">Iribitari Gal ni Manko Tsukawasete Morau Hanashi</div></span></span></a><!--]--><!--]--></div></div></div><!----></div> <main class="grid items-start gap-6 lg:col-span-4 xl:col-span-9 xl:pe-6"><article class="from-mute text-subs relative grid w-full shrink-0 items-end gap-4 bg-radial-[closest-side]"><div class="z-20 flex flex-col items-end gap-6 md:flex-row"><div class="grid items-start gap-4"><header class="grid items-start gap-4"><div class="grid items-start gap-1"><div class="text-main font-medium"><a class="hover:underline" href="/media/iribitari-gal-ni-manko-tsukawasete-morau-hanashi">Iribitari Gal ni Manko Tsukawasete Morau Hanashi</a></div> <h1 class="text-lead text-2xl font-bold xl:text-3xl"><!--[!-->Episodio 2<!--]--></h1></div> <div class="flex flex-wrap items-center gap-2 text-sm"><span>OVA</span> <span>•</span> <span>2024</span> <span>•</span> <span>Temporada Otoño</span> <span>•</span> <span class="after:bg-wins after:ring-wins/20 flex gap-2 after:h-1.5 after:w-1.5 after:transform-gpu after:animate-pulse after:rounded-full after:ring-4">En emisión</span></div> <div class="flex flex-wrap items-center gap-2"><!--[--><a class="btn btn-xs btn-line-o rounded-full" href="/catalogo?genre=ahegao">Ahegao</a><a class="btn btn-xs btn-line-o rounded-full" href="/catalogo?genre=tetonas">Tetonas</a><a class="btn btn-xs btn-line-o rounded-full" href="/catalogo?genre=virgenes">Virgenes</a><a class="btn btn-xs btn-line-o rounded-full" href="/catalogo?genre=paizuri">Paizuri</a><a class="btn btn-xs btn-line-o rounded-full" href="/catalogo?genre=gal">Gal</a><!--]--></div></header> <div class="entry text-lead line-clamp-4 text-sm xl:text-base"><p>Un otaku consigue un harem de compañeras que les gusta ir a su casa a hacer pendejadas. Sí, ya van como 5 iguales. </p></div> <div class="mt-2 flex flex-wrap gap-3"><div class="ic-star-solid ic-before border-line bg-soft before:text-warn flex items-center gap-2 rounded-lg border px-3 py-2 before:text-2xl"><div class="text-lead text-2xl font-bold">7.51</div> <div class="ms-1 grid"><div class="text-2xs">MAL RATING</div> <div class="text-subs text-xs"><span class="font-bold">1,756</span> Votos</div></div></div> <button class="btn btn-line-o btn-modal tooltip-top p-0 text-2xl" type="button" aria-label="Compartir"><span class="ic-share-07" aria-hidden="true"></span></button> <button class="btn btn-line-o btn-modal tooltip-top p-0 text-2xl" type="button" aria-label="Reportar episodio"><span class="ic-flag-02" aria-hidden="true"></span></button></div></div></div></article> <div class="max-w-182 sm:mx-0 sm:w-full md:mx-auto"><!----><div class="banner-container svelte-9zb2xj"><!--[!--><!--]--></div><!----><!----></div> <!----><!--[!--><!--]--> <!--[--><div class="flex justify-center"><div class="grid grid-cols-1 place-items-center text-4xl"><div class="col-start-1 row-start-1 h-[1em] w-[1em] rounded-full border-[.15em] border-current text-main text-opacity-40 dark:text-opacity-40" aria-hidden="true"></div> <div class="col-start-1 row-start-1 h-[1em] w-[1em] animate-spin rounded-full border-[.15em] border-transparent border-l-current text-main"></div></div><!----></div><!--]--><!----><!----></main> <aside class="grid items-start gap-6 lg:col-span-2 xl:col-span-3"><div><!----><iframe title="Ads 300x250" width="300" height="250" scrolling="no" frameborder="0" src="https://a.adtng.com/get/10016593?time=1769789618858" allowtransparency="" marginheight="0" marginwidth="0" name="spot_id_10016593"></iframe><!----><!----></div></aside></div> <!----><!----><!----><!--[!--><!--]--><!----><!----><!----><!----> <!----><!----><!----><!--[!--><!--]--><!----><!----><!----><!----><!----> <!----><!----><!----><!--[!--><!--]--><!----><!----><!----><!----> <!----><!----><!----><!--[!--><!--]--><!----><!----><!----><!----><!----> <!----><!----><!----><!--[!--><!--]--><!----><!----><!----><!----><!----><!----><!----><!----><!--]--><!----> <footer class="mt-auto"><div class="container flex flex-col flex-wrap items-center justify-center gap-4 py-12 md:flex-row lg:justify-between"><div class="flex flex-col items-center gap-x-6 gap-y-4 py-2 md:flex-row"><figure class="max-xl:group-has-[#box-search.show]/search:invisible"><a href="/hub"><img class="dark:hidden" width="145" height="40" src="/img/logo-ft.svg" alt="HentaiLA"/> <img class="hidden dark:block" width="145" height="40" src="/img/logo-ft-dark.svg" alt="HentaiLA"/></a></figure> <span class="ic-heart-solid ic-before before:text-tone inline-flex items-center gap-3 text-sm font-medium before:text-xl">By fans for fans</span></div> <nav class="flex w-full flex-wrap justify-center gap-2 md:order-first md:w-auto lg:-ms-3"></nav> <div class="flex w-full flex-wrap items-center justify-center gap-2 lg:justify-end"><a class="btn btn-xs btn-line-o w-full rounded-full sm:w-auto" href="/pages/terminos-y-condiciones">Términos y condiciones</a> <a class="btn btn-xs btn-line-o w-full rounded-full sm:w-auto" href="/pages/politica-de-privacidad">Política de privacidad</a></div></div></footer> <nav class="bg-body sticky bottom-0 z-30 lg:hidden"><div class="from-mute text-subs container flex bg-radial-[closest-side] px-0"><!--[--><!--[!--><a class="btn h-16 flex-1 flex-col px-0" href="/"><span class="ic-home-smile [.on>_&amp;]:text-main text-2xl" aria-hidden="true"></span> <span class="text-2xs [.on>_&amp;]:text-main">Inicio</span></a><!--]--><!--[!--><a class="btn h-16 flex-1 flex-col px-0" href="/catalogo"><span class="ic-layers-two-01 [.on>_&amp;]:text-main text-2xl" aria-hidden="true"></span> <span class="text-2xs [.on>_&amp;]:text-main">Catálogo</span></a><!--]--><!--[--><button class="btn h-16 flex-1 flex-col px-0"><span class="ic-list [.on>_&amp;]:text-main text-2xl" aria-hidden="true"></span> <span class="text-2xs [.on>_&amp;]:text-main">Mis Listas</span></button><!--]--><!--[--><button class="btn h-16 flex-1 flex-col px-0"><span class="ic-user-01 [.on>_&amp;]:text-main text-2xl" aria-hidden="true"></span> <span class="text-2xs [.on>_&amp;]:text-main">Mi cuenta</span></button><!--]--><!--]--></div></nav><!----><!--]--><!----><!----><!--]--> <!--[!--><!--]--><!--]-->
+			
+			<script>
+				{
+					__sveltekit_ciho43 = {
+						base: new URL("../..", location).pathname.slice(0, -1),
+						env: {"PUBLIC_DISCORD_CLIENT_ID":"1402378647154987189","PUBLIC_GOOGLE_ANALYTICS_ID":"G-T7KQ8V9457","PUBLIC_GOOGLE_CLIENT_ID":"554034498166-ck4hhf8jhn4f3ngduj3mpjhf2oua2df7.apps.googleusercontent.com","PUBLIC_NAME":"HentaiLA","PUBLIC_TURNSTILE_KEY":"0x4AAAAAABobdNxWiMbd0UrA","PUBLIC_CDN_URL":"https://cdn.hentaila.com","PUBLIC_URL":"https://hentaila.com"}
+					};
 
-    return details;
-}
+					const element = document.currentScript.parentElement;
 
-function extractEpisodes(html) {
-    const episodes = [];
-    const baseUrl = "https://hentaila.com";
+					Promise.all([
+						import("../../_app/immutable/entry/start.CxDMpFk6.js"),
+						import("../../_app/immutable/entry/app.BRESYfck.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element, {
+							node_ids: [0, 2, 4, 14],
+							data: [null,{type:"data",data:{user:null},uses:{dependencies:["https://hentaila.com/media/iribitari-gal-ni-manko-tsukawasete-morau-hanashi/auth"]}},{type:"data",data:{media:{id:1089,categoryId:1,title:"Iribitari Gal ni Manko Tsukawasete Morau Hanashi",aka:{"ja-jp":"入り浸りギャルにま〇こ使わせて貰う話"},genres:[{id:2,name:"Ahegao",type:0,slug:"ahegao",malId:null},{id:28,name:"Tetonas",type:0,slug:"tetonas",malId:null},{id:31,name:"Virgenes",type:0,slug:"virgenes",malId:null},{id:38,name:"Paizuri",type:0,slug:"paizuri",malId:null},{id:39,name:"Gal",type:0,slug:"gal",malId:null}],synopsis:"Un otaku consigue un harem de compañeras que les gusta ir a su casa a hacer pendejadas. Sí, ya van como 5 iguales. ",poster:null,backdrop:null,trailer:null,status:2,runtime:null,startDate:"2024-10-04",nextDate:"2026-01-09",endDate:null,waitDays:0,featured:false,mature:false,episodesCount:4,score:7.51,votes:1756,slug:"iribitari-gal-ni-manko-tsukawasete-morau-hanashi",malId:59407,seasons:null,createdAt:"2024-10-10 21:09:22+00",updatedAt:"2025-12-19 20:42:28.235+00",category:{id:1,name:"OVA",slug:"ova",malId:3},episodes:[{id:2709,number:1},{id:2712,number:2},{id:2996,number:3},{id:3041,number:4}],relations:[]}},uses:{params:["slug"]}},{type:"data",data:{episode:{id:2712,mediaId:1089,title:null,number:2,season:null,relativeNumber:null,variants:{},filler:false,publishedAt:"2024-10-18 20:29:06+00",createdAt:"2024-10-18 20:28:46+00",updatedAt:"2024-10-18 20:28:46+00",mirrors:void 0},embeds:{SUB:[{server:"VIP",url:"https://cdn.hvidserv.com/play/327a0450fc413ca8dad2882c2a8cb067"},{server:"Mega",url:"https://mega.nz/embed/!AIxSETZK!lcW9jmovMHh96H8r4pV8uJYc2F0jaLxp9Z7B538u7Qc"},{server:"YourUpload",url:"https://www.yourupload.com/embed/68nlRQ7niAL2"},{server:"MP4Upload",url:"https://www.mp4upload.com/embed-ekkulrizn8fx.html"},{server:"Netu",url:"https://hqq.ac/e/MmRFWGhtTTdSNGZEUUp1dEVuUjJRUT09"},{server:"VidHide",url:"https://ryderjet.com/embed/yf26yr7z4vkt"},{server:"Voe",url:"https://voe.sx/e/zigjcsdvgunt"}]},downloads:{SUB:[{server:"MediaFire",url:"https://www.mediafire.com/file/5po8eu61ocblvbm"},{server:"Mega",url:"https://mega.nz/file/!AIxSETZK!lcW9jmovMHh96H8r4pV8uJYc2F0jaLxp9Z7B538u7Qc"},{server:"FireLoad",url:"https://www.fireload.com/39fc77399a98cd26"},{server:"1Fichier",url:"https://1fichier.com/?uafporiu9eiyo4l2gc58"},{server:"MP4Upload",url:"https://www.mp4upload.com/ekkulrizn8fx"}]}},uses:{params:["number"],parent:1}}],
+							form: null,
+							error: null
+						});
+					});
+				}
+			</script>
+		</div>
+	<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"e67100b271c54729b57001586758e609","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
 
-    // Links de episodios: href="/media/slug/numero"
-    const epRegex = /href="(\/media\/[^"\/]+\/(\d+))"/g;
-    let match;
-    const seen = new Set();
+	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-155097471-1"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag() {
+			dataLayer.push(arguments);
+		}
+		gtag('js', new Date());
 
-    while ((match = epRegex.exec(html)) !== null) {
-        const path = match[1];
-        const number = match[2];
-        const href = baseUrl + path;
-
-        if (seen.has(href)) continue;
-        seen.add(href);
-
-        episodes.push({
-            href: href,
-            number: number
-        });
-    }
-
-    episodes.sort((a, b) => parseFloat(a.number) - parseFloat(b.number));
-
-    return episodes;
-}
-
-async function extractStreamUrl(html) {
-    try {
-        // Buscar iframe del reproductor embebido
-        const iframeMatch = html.match(/src="(https?:\/\/(?!(?:cdn|www\.google|www\.facebook)[^"]*)[^"]+(?:embed|player|watch|stream)[^"]*)"/i);
-        if (iframeMatch) {
-            const embedUrl = iframeMatch[1].replace(/&amp;/g, '&');
-            const response = await fetchv2(embedUrl, {
-                'Referer': 'https://hentaila.com/',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            });
-            const embedHtml = await response.text();
-
-            const m3u8 = embedHtml.match(/["'](https?:\/\/[^"']+\.m3u8[^"']*)['"]/);
-            if (m3u8) return m3u8[1];
-
-            const mp4 = embedHtml.match(/["'](https?:\/\/[^"']+\.mp4[^"']*)['"]/);
-            if (mp4) return mp4[1];
-        }
-
-        // Fallback: buscar m3u8 directo en el HTML
-        const directM3u8 = html.match(/["'](https?:\/\/[^"']+\.m3u8[^"']*)['"]/);
-        if (directM3u8) return directM3u8[1];
-
-        return null;
-    } catch (error) {
-        return null;
-    }
-}
+		gtag('config', 'UA-155097471-1');
+	</script>
+</html>
