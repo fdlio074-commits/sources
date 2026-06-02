@@ -1,22 +1,24 @@
 function searchResults(html) {
     const results = [];
-    const baseUrl = "https://tioanime.com";
+    const baseUrl = "https://hentaila.com";
 
-    // Cada card de búsqueda es un <li> con <a href="/anime/slug"> + <img> + <p class="title">
-    const itemRegex = /<li[\s\S]*?<\/li>/g;
+    // Cards de resultados: <article class="group/item relative text-body">
+    // con <h3 class="...text-lead">TITULO</h3>
+    // con <img ... src="https://cdn.hentaila.com/covers/ID.jpg">
+    // con <a ... href="/media/slug">
+    const itemRegex = /<article class="group\/item relative text-body"[\s\S]*?<\/article>/g;
     const items = html.match(itemRegex) || [];
 
     items.forEach((item) => {
-        const hrefMatch = item.match(/href="(\/anime\/[^"]+)"/);
-        const imgMatch = item.match(/<img[^>]+src="([^"]+)"/);
-        const titleMatch = item.match(/<p[^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)<\/p>/) ||
-                           item.match(/<h3[^>]*>([^<]+)<\/h3>/);
+        const titleMatch = item.match(/<h3[^>]*class="[^"]*text-lead[^"]*"[^>]*>([^<]+)<\/h3>/);
+        const imgMatch = item.match(/src="(https:\/\/cdn\.hentaila\.com\/covers\/[^"]+)"/);
+        const hrefMatch = item.match(/href="(\/media\/[^"\/]+)"[^>]*><span class="sr-only">/);
 
-        const href = hrefMatch ? baseUrl + hrefMatch[1] : '';
-        const image = imgMatch ? imgMatch[1] : '';
         const title = titleMatch ? titleMatch[1].trim() : '';
+        const image = imgMatch ? imgMatch[1] : '';
+        const href = hrefMatch ? baseUrl + hrefMatch[1] : '';
 
-        if (href && title) {
+        if (title && href) {
             results.push({
                 title: title,
                 image: image,
@@ -31,19 +33,17 @@ function searchResults(html) {
 function extractDetails(html) {
     const details = [];
 
-    const descriptionMatch = html.match(/<p[^>]*itemprop="description"[^>]*>([\s\S]*?)<\/p>/) ||
-                             html.match(/<div[^>]*class="[^"]*sinopsis[^"]*"[^>]*>[\s\S]*?<p>([\s\S]*?)<\/p>/);
-    let description = descriptionMatch ? descriptionMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+    // Descripción: <div class="entry line-clamp-4 ..."><p>TEXTO</p></div>
+    const descMatch = html.match(/<div class="entry[^"]*"[^>]*>[\s\S]*?<p>([\s\S]*?)<\/p>/);
+    let description = descMatch ? descMatch[1].trim() : '';
 
-    const aliasesMatch = html.match(/<span[^>]*class="[^"]*titalt[^"]*"[^>]*>([^<]+)<\/span>/) ||
-                         html.match(/<p[^>]*class="[^"]*alt[^"]*"[^>]*>([^<]+)<\/p>/);
-    let aliases = aliasesMatch ? aliasesMatch[1].trim() : 'N/A';
+    // Año: <span>2025</span> dentro del header de info
+    const yearMatch = html.match(/<span>(\d{4})<\/span>/);
+    let airdate = yearMatch ? yearMatch[1] : '';
 
-    const airdateMatch = html.match(/TV\s+(\d{4})/) ||
-                         html.match(/OVA\s+(\d{4})/) ||
-                         html.match(/Pel[ií]cula\s+(\d{4})/) ||
-                         html.match(/(\d{4})\s*Temporada/);
-    let airdate = airdateMatch ? airdateMatch[1].trim() : '';
+    // Tipo como alias: OVA, TV, etc
+    const typeMatch = html.match(/<span>(OVA|TV|Movie|Pelicula)<\/span>/);
+    let aliases = typeMatch ? typeMatch[1] : 'N/A';
 
     if (description) {
         details.push({
@@ -58,37 +58,26 @@ function extractDetails(html) {
 
 function extractEpisodes(html) {
     const episodes = [];
-    const baseUrl = "https://tioanime.com";
+    const baseUrl = "https://hentaila.com";
 
-    const episodeLinks = html.match(/href="(\/ver\/[^"]+)"/g);
-
-    if (!episodeLinks) {
-        return episodes;
-    }
-
+    // Links de episodios: href="/media/slug/numero"
+    const epRegex = /href="(\/media\/[^"\/]+\/(\d+))"/g;
+    let match;
     const seen = new Set();
 
-    episodeLinks.forEach((link) => {
-        const hrefMatch = link.match(/href="(\/ver\/[^"]+)"/);
-        if (!hrefMatch) return;
+    while ((match = epRegex.exec(html)) !== null) {
+        const path = match[1];
+        const number = match[2];
+        const href = baseUrl + path;
 
-        const path = hrefMatch[1];
-        const fullHref = baseUrl + path;
+        if (seen.has(href)) continue;
+        seen.add(href);
 
-        if (seen.has(fullHref)) return;
-        seen.add(fullHref);
-
-        // Extrae el número del final del slug: /ver/naruto-1 → 1
-        const numberMatch = path.match(/-(\d+(?:\.\d+)?)$/);
-        const number = numberMatch ? numberMatch[1] : '';
-
-        if (number) {
-            episodes.push({
-                href: fullHref,
-                number: number
-            });
-        }
-    });
+        episodes.push({
+            href: href,
+            number: number
+        });
+    }
 
     episodes.sort((a, b) => parseFloat(a.number) - parseFloat(b.number));
 
@@ -97,25 +86,26 @@ function extractEpisodes(html) {
 
 async function extractStreamUrl(html) {
     try {
-        // TioAnime carga el stream en un iframe externo (biribup.com)
-        const iframeMatch = html.match(/src="(https:\/\/biribup\.com[^"]+)"/);
-        if (!iframeMatch) return null;
+        // Buscar iframe del reproductor embebido
+        const iframeMatch = html.match(/src="(https?:\/\/(?!(?:cdn|www\.google|www\.facebook)[^"]*)[^"]+(?:embed|player|watch|stream)[^"]*)"/i);
+        if (iframeMatch) {
+            const embedUrl = iframeMatch[1].replace(/&amp;/g, '&');
+            const response = await fetchv2(embedUrl, {
+                'Referer': 'https://hentaila.com/',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            });
+            const embedHtml = await response.text();
 
-        const iframeUrl = iframeMatch[1].replace(/&amp;/g, '&');
+            const m3u8 = embedHtml.match(/["'](https?:\/\/[^"']+\.m3u8[^"']*)['"]/);
+            if (m3u8) return m3u8[1];
 
-        const response = await fetchv2(iframeUrl, {
-            'Referer': 'https://tioanime.com/',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        });
-        const iframeHtml = await response.text();
+            const mp4 = embedHtml.match(/["'](https?:\/\/[^"']+\.mp4[^"']*)['"]/);
+            if (mp4) return mp4[1];
+        }
 
-        // Buscar .m3u8 dentro del iframe
-        const m3u8Match = iframeHtml.match(/["'](https?:\/\/[^"']+\.m3u8[^"']*)['"]/);
-        if (m3u8Match) return m3u8Match[1];
-
-        // Buscar .mp4 dentro del iframe
-        const mp4Match = iframeHtml.match(/["'](https?:\/\/[^"']+\.mp4[^"']*)['"]/);
-        if (mp4Match) return mp4Match[1];
+        // Fallback: buscar m3u8 directo en el HTML
+        const directM3u8 = html.match(/["'](https?:\/\/[^"']+\.m3u8[^"']*)['"]/);
+        if (directM3u8) return directM3u8[1];
 
         return null;
     } catch (error) {
