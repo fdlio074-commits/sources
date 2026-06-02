@@ -1,28 +1,19 @@
 {
   "sourceName": "TioAnime",
-  "iconUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/icon.png",
+  "iconUrl": "https://tioanime.com/assets/img/favicon.png",
   "author": {
-    "name": "fdlio074",
-    "icon": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/icon.png"
+    "name": "Fdlio",
+    "icon": "https://avatars.githubusercontent.com/fdlio074-commits"
   },
   "version": "1.0.0",
-  "language": "Spanish",
+  "language": "Spanish (Sub)",
   "streamType": "HLS",
-  "quality": "1080p",
-  "baseUrl": "https://tioanime.com/",
+  "quality": "720p",
+  "baseUrl": "https://tioanime.com",
   "searchBaseUrl": "https://tioanime.com/buscar?q=%s",
   "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
-  "type": "anime",
-  "asyncJS": true,
-  "softsub": true,
-  "downloadSupport": false,
-  "note": "Use external player.",
-  "supportsMojuru": true,
-  "supportsDartotsu": true,
-  "supportsSora": true,
-  "supportsLuna": true,
-  "supportsAnymex": true,
-  "supportsTsumi": true,
-  "supportsHiyoku": true,
-  "supportsShirox": true
+  "asyncJS": false,
+  "streamAsyncJS": false,
+  "softsub": false,
+  "type": "anime"
 }
