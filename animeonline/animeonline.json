@@ -1,9 +1,9 @@
 {
     "sourceName": "Anime-JL",
-    "iconUrl": "https://anime-jl.net/favicon.ico",
+    "iconUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/icon.png",
     "author": {
-        "name": "Usuario",
-        "icon": "https://anime-jl.net/favicon.ico"
+        "name": "Fdlio",
+        "icon": "https://avatars.githubusercontent.com/fdlio074-commits"
     },
     "version": "1.0.0",
     "language": "Español Latino",
@@ -11,7 +11,7 @@
     "quality": "1080p",
     "baseUrl": "https://anime-jl.net/",
     "searchBaseUrl": "https://anime-jl.net/?s=%s",
-    "scriptUrl": "URL_A_TU_ARCHIVO_animejl.js",
+    "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
     "asyncJS": true,
     "type": "anime"
 }
