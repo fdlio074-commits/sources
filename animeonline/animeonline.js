@@ -8,10 +8,13 @@
 async function searchResults(keyword) {
     try {
         const encodedKeyword = encodeURIComponent(keyword);
+
         const response = await fetchv2(
             `https://anime-jl.net/animes?q=${encodedKeyword}`,
             {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'es-ES,es;q=0.9',
                 'Referer': 'https://anime-jl.net/'
             }
         );
@@ -20,37 +23,40 @@ async function searchResults(keyword) {
         const results = [];
         const seen = new Set();
 
-        // Patrón principal: enlaces a /anime/{id}/{slug}
-        const blockRegex = /href="(https:\/\/anime-jl\.net\/anime\/\d+\/(?!.*episodio)[^"]+)"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"[\s\S]*?<\/a>/gi;
+        // Buscar todos los enlaces /anime/{id}/{slug} en la página
+        const linkRegex = /href="(https:\/\/anime-jl\.net\/anime\/(\d+)\/([^"\/]+))"/gi;
         let match;
 
-        while ((match = blockRegex.exec(html)) !== null) {
+        while ((match = linkRegex.exec(html)) !== null) {
             const href = match[1].trim();
             if (seen.has(href)) continue;
+            if (href.includes('/episodio-')) continue;
             seen.add(href);
 
-            // Extraer título del atributo alt de la imagen o del title del enlace
-            const altMatch = match[0].match(/alt="([^"]+)"/i) || match[0].match(/title="([^"]+)"/i);
-            const title = altMatch ? altMatch[1].trim() : href.split('/').pop().replace(/-/g, ' ');
+            // Slug a título legible
+            const slug = match[3];
+            const title = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-            results.push({
-                title: title,
-                image: match[2].trim(),
-                href: href
-            });
+            // Buscar imagen cercana al enlace
+            const surroundingHtml = html.substring(Math.max(0, match.index - 500), match.index + 500);
+            const imgMatch = surroundingHtml.match(/src="(https?:\/\/[^"]+(?:\.jpg|\.png|\.webp)[^"]*)"/i);
+            const image = imgMatch ? imgMatch[1] : '';
+
+            results.push({ title, image, href });
         }
 
-        // Fallback: buscar enlaces con título visible
+        // Si solo encontró 1 resultado (redirigió al anime directamente), igual lo devolvemos
         if (results.length === 0) {
-            const fallback = /href="(https:\/\/anime-jl\.net\/anime\/\d+\/(?!.*episodio)[^"]+)"[^>]*>([^<]{3,})<\/a>/gi;
-            while ((match = fallback.exec(html)) !== null) {
-                const href = match[1].trim();
-                if (seen.has(href)) continue;
-                seen.add(href);
+            // Intentar extraer datos de la página actual (puede ser el anime directo)
+            const titleMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+            const imgMatch = html.match(/<img[^>]+src="(https?:\/\/[^"]+(?:\.jpg|\.png|\.webp)[^"]*)"/i);
+            const canonicalMatch = html.match(/<link[^>]+rel="canonical"[^>]+href="([^"]+)"/i);
+
+            if (titleMatch && canonicalMatch) {
                 results.push({
-                    title: match[2].trim(),
-                    image: '',
-                    href: href
+                    title: titleMatch[1].trim(),
+                    image: imgMatch ? imgMatch[1] : '',
+                    href: canonicalMatch[1]
                 });
             }
         }
@@ -71,7 +77,9 @@ async function searchResults(keyword) {
 async function extractDetails(url) {
     try {
         const response = await fetchv2(url, {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'es-ES,es;q=0.9',
             'Referer': 'https://anime-jl.net/'
         });
 
@@ -107,18 +115,14 @@ async function extractDetails(url) {
         if (yearMatch) airdate = 'Año: ' + yearMatch[1];
 
         return JSON.stringify([{
-            description: description,
+            description,
             aliases: aliases || 'Anime en Español',
             airdate: airdate || 'Fecha desconocida'
         }]);
 
     } catch (error) {
         console.log('extractDetails error:', error);
-        return JSON.stringify([{
-            description: 'Error al cargar descripción',
-            aliases: '',
-            airdate: ''
-        }]);
+        return JSON.stringify([{ description: 'Error al cargar descripción', aliases: '', airdate: '' }]);
     }
 }
 
@@ -126,7 +130,9 @@ async function extractDetails(url) {
 async function extractEpisodes(url) {
     try {
         const response = await fetchv2(url, {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'es-ES,es;q=0.9',
             'Referer': 'https://anime-jl.net/'
         });
 
@@ -169,7 +175,9 @@ async function extractEpisodes(url) {
 async function extractStreamUrl(url) {
     try {
         const response = await fetchv2(url, {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'es-ES,es;q=0.9',
             'Referer': 'https://anime-jl.net/'
         });
 
@@ -183,7 +191,7 @@ async function extractStreamUrl(url) {
         const mp4Match = html.match(/https?:\/\/[^\s"'<>]+\.mp4(?:[^\s"'<>]*)?/i);
         if (mp4Match) return mp4Match[0];
 
-        // 3. Iframes de reproductores
+        // 3. Iframes
         const iframeMatches = [...html.matchAll(/<iframe[^>]+src="(https?:\/\/[^"]+)"[^>]*>/gi)];
         for (const iframeMatch of iframeMatches) {
             const iframeUrl = iframeMatch[1];
@@ -191,7 +199,7 @@ async function extractStreamUrl(url) {
 
             try {
                 const iframeResp = await fetchv2(iframeUrl, {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
                     'Referer': url
                 });
                 const iframeHtml = await iframeResp.text();
