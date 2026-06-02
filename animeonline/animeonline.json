@@ -1,23 +1,10 @@
 {
-  "id": "net.animejl.fdlio",
-  "name": "Anime JL",
-  "author": "Fdlio",
-  "version": "1.0.0",
-  "icon": "https://raw.githubusercontent.com/fdlio074/sources/main/animeonline/icon.png",
-  "baseUrl": "https://anime-jl.net",
-  "features": {
-    "search": {
-      "url": "https://anime-jl.net/animes?search={{query}}",
-      "script": "https://raw.githubusercontent.com/fdlio074/sources/main/animeonline/animeonline.js",
-      "mode": "async"
-    },
-    "detail": {
-      "script": "https://raw.githubusercontent.com/fdlio074/sources/main/animeonline/animeonline.js",
-      "mode": "async"
-    },
-    "episode": {
-      "script": "https://raw.githubusercontent.com/fdlio074/sources/main/animeonline/animeonline.js",
-      "mode": "async"
-    }
-  }
+    "nombre": "Anime-JL",
+    "urlBase": "https://anime-jl.net",
+    "searchBaseUrl": "/buscar?q=",
+    "version": "1.1",
+    "idioma": "es",
+    "descripcion": "Ver y descargar anime en HD subtítulado latino, enlaces directos y Mega",
+    "autor": "Generado para Sora",
+    "estado": "activo"
 }
