@@ -88,45 +88,11 @@ function extractEpisodes(html) {
 }
 
 async function extractStreamUrl(html) {
-    try {
-        // Extraer URL del servidor VIP desde el objeto SvelteKit
-        const embedsMatch = html.match(/embeds:\{SUB:\[([^\]]+)\]/);
-        if (embedsMatch) {
-            const vipMatch = embedsMatch[1].match(/server:"VIP",url:"([^"]+)"/);
-            if (vipMatch) {
-                const embedUrl = vipMatch[1].replace(/\\u002F/g, '/');
-                const response = await fetchv2(embedUrl, {
-                    'Referer': 'https://hentaila.com/',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                });
-                const embedHtml = await response.text();
+    const iframeMatch = html.match(/<iframe[^>]+src="([^"]+)"/i);
 
-                const m3u8 = embedHtml.match(/["'`](https?:\/\/[^"'`\s]+\.m3u8[^"'`\s]*)['"` ]/);
-                if (m3u8) return m3u8[1];
-
-                const mp4 = embedHtml.match(/["'`](https?:\/\/[^"'`\s]+\.mp4[^"'`\s]*)['"` ]/);
-                if (mp4) return mp4[1];
-            }
-        }
-
-        // Fallback: iframe visible en el HTML
-        const iframeMatch = html.match(/src="(https:\/\/cdn\.hvidserv\.com\/play\/[^"]+)"/);
-        if (iframeMatch) {
-            const response = await fetchv2(iframeMatch[1], {
-                'Referer': 'https://hentaila.com/',
-                'User-Agent': 'Mozilla/5.0'
-            });
-            const embedHtml = await response.text();
-
-            const m3u8 = embedHtml.match(/["'`](https?:\/\/[^"'`\s]+\.m3u8[^"'`\s]*)['"` ]/);
-            if (m3u8) return m3u8[1];
-
-            const mp4 = embedHtml.match(/["'`](https?:\/\/[^"'`\s]+\.mp4[^"'`\s]*)['"` ]/);
-            if (mp4) return mp4[1];
-        }
-
-        return null;
-    } catch (e) {
-        return null;
+    if (iframeMatch) {
+        return iframeMatch[1];
     }
+
+    return null;
 }
