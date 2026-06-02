@@ -142,7 +142,7 @@ async function extractEpisodes(url) {
     }
 }
 
-async function extractStreamUrl(url) {
+async function extractEpisodes(url) {
     try {
         const response = await fetchv2(url, {
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
@@ -150,46 +150,22 @@ async function extractStreamUrl(url) {
         });
         const html = await response.text();
 
-        // Intento 1: .m3u8 directo
-        const m3u8Match = html.match(/https?:\/\/[^\s"'<>]+\.m3u8[^\s"'<>]*/i);
-        if (m3u8Match) return m3u8Match[0];
+        // Devolver los primeros 500 caracteres del HTML para ver qué llega
+        const snippet = html.substring(0, 500);
+        
+        // Buscar si existe "anime_info" en el html
+        const hasAnimeInfo = html.indexOf("anime_info") !== -1 ? "SI tiene anime_info" : "NO tiene anime_info";
+        const hasEpisodes = html.indexOf("var episodes") !== -1 ? "SI tiene var episodes" : "NO tiene var episodes";
+        const htmlLength = "largo del html: " + html.length;
 
-        // Intento 2: .mp4 directo
-        const mp4Match = html.match(/https?:\/\/[^\s"'<>]+\.mp4[^\s"'<>]*/i);
-        if (mp4Match) return mp4Match[0];
-
-        // Intento 3: iframe externo
-        const iframeMatch = html.match(/<iframe[^>]+src=['"]([^'"]+)['"]/i);
-        if (iframeMatch) {
-            const iframeUrl = iframeMatch[1].startsWith("//")
-                ? "https:" + iframeMatch[1]
-                : iframeMatch[1];
-
-            const iframeResp = await fetchv2(iframeUrl, {
-                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
-                "Referer": "https://www.anime-jl.net/"
-            });
-            const iframeHtml = await iframeResp.text();
-
-            const iframeM3u8 = iframeHtml.match(/https?:\/\/[^\s"'<>]+\.m3u8[^\s"'<>]*/i);
-            if (iframeM3u8) return iframeM3u8[0];
-
-            const iframeMp4 = iframeHtml.match(/https?:\/\/[^\s"'<>]+\.mp4[^\s"'<>]*/i);
-            if (iframeMp4) return iframeMp4[0];
-
-            const fileMatch = iframeHtml.match(/["'](?:file|src)["']\s*:\s*["'](https?:\/\/[^"']+\.(?:m3u8|mp4)[^"']*)["']/i);
-            if (fileMatch) return fileMatch[1];
-        }
-
-        // Intento 4: "file":"..." en la página
-        const fileMatch2 = html.match(/["'](?:file|src)["']\s*:\s*["'](https?:\/\/[^"']+\.(?:m3u8|mp4)[^"']*)["']/i);
-        if (fileMatch2) return fileMatch2[1];
-
-        console.log("extractStreamUrl: no se encontró stream en " + url);
-        return null;
+        // Retornar como un episodio de diagnóstico
+        return JSON.stringify([{
+            href: "https://www.anime-jl.net",
+            number: 0,
+            title: hasAnimeInfo + " | " + hasEpisodes + " | " + htmlLength
+        }]);
 
     } catch (error) {
-        console.log("extractStreamUrl error: " + error);
-        return null;
+        return JSON.stringify([{ href: "error", number: 0, title: "ERROR: " + error }]);
     }
 }
