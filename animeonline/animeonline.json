@@ -1,5 +1,5 @@
 {
-  "sourceName": "AnimeOnline Ninja",
+  "sourceName": "TioAnime",
   "iconUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/icon.png",
   "author": {
     "name": "fdlio074",
@@ -9,8 +9,8 @@
   "language": "Spanish",
   "streamType": "HLS",
   "quality": "1080p",
-  "baseUrl": "https://ww3.animeonline.ninja/",
-  "searchBaseUrl": "https://ww3.animeonline.ninja/?s=%s",
+  "baseUrl": "https://tioanime.com/",
+  "searchBaseUrl": "https://tioanime.com/buscar?q=%s",
   "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
   "type": "anime",
   "asyncJS": true,
