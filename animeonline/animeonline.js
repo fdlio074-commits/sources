@@ -1,166 +1,124 @@
-// ============================================================
-//  Módulo Sora — TioAnime (tioanime.com)
-//  Autor: Fdlio
-//  Idioma: Español (Sub)  |  Tipo: anime
-// ============================================================
-
-function cleanText(str) {
-    return str
-        .replace(/&amp;/g, "&")
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&#\d+;/g, "")
-        .replace(/<[^>]+>/g, "")
-        .trim();
-}
-
-// ----- 1. searchResults -----
-// Input : HTML de https://tioanime.com/buscar?q=%s
-// Output: [{title, image, href}]
-
 function searchResults(html) {
     const results = [];
-    const base = "https://tioanime.com";
+    const baseUrl = "https://tioanime.com";
 
-    // Patrón principal: lista de animes en resultados de búsqueda
-    const cardRegex = /<article[^>]*>[\s\S]*?<a[^>]+href="(\/anime\/[^"]+)"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"[^>]*>[\s\S]*?<\/a>[\s\S]*?<a[^>]+href="\/anime\/[^"]+"[^>]*>([^<]+)<\/a>[\s\S]*?<\/article>/g;
-    let match;
+    // Cada card de búsqueda es un <li> con <a href="/anime/slug"> + <img> + <p class="title">
+    const itemRegex = /<li[\s\S]*?<\/li>/g;
+    const items = html.match(itemRegex) || [];
 
-    while ((match = cardRegex.exec(html)) !== null) {
-        const href  = base + match[1];
-        const image = match[2].startsWith("http") ? match[2] : base + match[2];
-        const title = cleanText(match[3]);
-        if (title && href) results.push({ title, image, href });
-    }
+    items.forEach((item) => {
+        const hrefMatch = item.match(/href="(\/anime\/[^"]+)"/);
+        const imgMatch = item.match(/<img[^>]+src="([^"]+)"/);
+        const titleMatch = item.match(/<p[^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)<\/p>/) ||
+                           item.match(/<h3[^>]*>([^<]+)<\/h3>/);
 
-    // Fallback 1: <li> con enlace a /anime/
-    if (results.length === 0) {
-        const liRegex = /<li[^>]*>[\s\S]*?<a[^>]+href="(\/anime\/[^"]+)"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"[^>]*>[\s\S]*?<h3[^>]*>([^<]+)<\/h3>[\s\S]*?<\/li>/g;
-        while ((match = liRegex.exec(html)) !== null) {
-            const href  = base + match[1];
-            const image = match[2].startsWith("http") ? match[2] : base + match[2];
-            const title = cleanText(match[3]);
-            if (title && href) results.push({ title, image, href });
+        const href = hrefMatch ? baseUrl + hrefMatch[1] : '';
+        const image = imgMatch ? imgMatch[1] : '';
+        const title = titleMatch ? titleMatch[1].trim() : '';
+
+        if (href && title) {
+            results.push({
+                title: title,
+                image: image,
+                href: href
+            });
         }
-    }
-
-    // Fallback 2: patrón genérico href + img + título
-    if (results.length === 0) {
-        const genRegex = /<a[^>]+href="(\/anime\/[^"]+)"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"[^>]*>[\s\S]*?<p[^>]*>([^<]+)<\/p>/g;
-        while ((match = genRegex.exec(html)) !== null) {
-            const href  = base + match[1];
-            const image = match[2].startsWith("http") ? match[2] : base + match[2];
-            const title = cleanText(match[3]);
-            if (title && href) results.push({ title, image, href });
-        }
-    }
+    });
 
     return results;
 }
 
-// ----- 2. extractDetails -----
-// Input : HTML de https://tioanime.com/anime/[slug]
-// Output: [{description, aliases, airdate}]
-
 function extractDetails(html) {
     const details = [];
 
-    // Descripción
-    const descMatch =
-        html.match(/<p[^>]*class="[^"]*sinopsis[^"]*"[^>]*>([\s\S]*?)<\/p>/i) ||
-        html.match(/<div[^>]*class="[^"]*sinopsis[^"]*"[^>]*>[\s\S]*?<p>([\s\S]*?)<\/p>/i) ||
-        html.match(/<p[^>]*itemprop="description"[^>]*>([\s\S]*?)<\/p>/i) ||
-        html.match(/<div[^>]*class="[^"]*descripcion[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-    const description = descMatch
-        ? cleanText(descMatch[1])
-        : "Sin descripción disponible.";
+    const descriptionMatch = html.match(/<p[^>]*itemprop="description"[^>]*>([\s\S]*?)<\/p>/) ||
+                             html.match(/<div[^>]*class="[^"]*sinopsis[^"]*"[^>]*>[\s\S]*?<p>([\s\S]*?)<\/p>/);
+    let description = descriptionMatch ? descriptionMatch[1].replace(/<[^>]+>/g, '').trim() : '';
 
-    // Año de emisión
-    const yearMatch =
-        html.match(/TV\s+(\d{4})/) ||
-        html.match(/(\d{4})\s*(?:Temporada|Season)/) ||
-        html.match(/<span[^>]*class="[^"]*year[^"]*"[^>]*>([^<]+)<\/span>/i);
-    const airdate = yearMatch ? yearMatch[1].trim() : "";
+    const aliasesMatch = html.match(/<span[^>]*class="[^"]*titalt[^"]*"[^>]*>([^<]+)<\/span>/) ||
+                         html.match(/<p[^>]*class="[^"]*alt[^"]*"[^>]*>([^<]+)<\/p>/);
+    let aliases = aliasesMatch ? aliasesMatch[1].trim() : 'N/A';
 
-    // Título alternativo / alias (nombre japonés u otro)
-    const aliasMatch =
-        html.match(/<h2[^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)<\/h2>/i) ||
-        html.match(/<span[^>]*class="[^"]*alt[^"]*"[^>]*>([^<]+)<\/span>/i) ||
-        html.match(/<p[^>]*class="[^"]*alt[^"]*"[^>]*>([^<]+)<\/p>/i);
-    const aliases = aliasMatch ? cleanText(aliasMatch[1]) : "";
+    const airdateMatch = html.match(/TV\s+(\d{4})/) ||
+                         html.match(/OVA\s+(\d{4})/) ||
+                         html.match(/Pel[ií]cula\s+(\d{4})/) ||
+                         html.match(/(\d{4})\s*Temporada/);
+    let airdate = airdateMatch ? airdateMatch[1].trim() : '';
 
-    details.push({ description, aliases, airdate });
+    if (description) {
+        details.push({
+            description: description,
+            aliases: aliases,
+            airdate: airdate
+        });
+    }
+
     return details;
 }
 
-// ----- 3. extractEpisodes -----
-// Input : HTML de https://tioanime.com/anime/[slug]
-// Output: [{href, number}]
-
 function extractEpisodes(html) {
     const episodes = [];
-    const base = "https://tioanime.com";
-    const seen = new Set();
+    const baseUrl = "https://tioanime.com";
 
-    // Patrón principal: links a /ver/[slug]-[numero]
-    const epRegex = /href="(\/ver\/[^"]+)"/g;
-    let match;
+    const episodeLinks = html.match(/href="(\/ver\/[^"]+)"/g);
 
-    while ((match = epRegex.exec(html)) !== null) {
-        const path = match[1];
-        const href = base + path;
-
-        if (seen.has(href)) continue;
-        seen.add(href);
-
-        // Extraer número del final de la URL: /ver/nombre-del-anime-12 → 12
-        const numMatch = path.match(/-(\d+(?:\.\d+)?)$/);
-        const number = numMatch ? numMatch[1] : null;
-
-        if (number) {
-            episodes.push({ href, number });
-        }
+    if (!episodeLinks) {
+        return episodes;
     }
 
-    // Ordenar de menor a mayor episodio
+    const seen = new Set();
+
+    episodeLinks.forEach((link) => {
+        const hrefMatch = link.match(/href="(\/ver\/[^"]+)"/);
+        if (!hrefMatch) return;
+
+        const path = hrefMatch[1];
+        const fullHref = baseUrl + path;
+
+        if (seen.has(fullHref)) return;
+        seen.add(fullHref);
+
+        // Extrae el número del final del slug: /ver/naruto-1 → 1
+        const numberMatch = path.match(/-(\d+(?:\.\d+)?)$/);
+        const number = numberMatch ? numberMatch[1] : '';
+
+        if (number) {
+            episodes.push({
+                href: fullHref,
+                number: number
+            });
+        }
+    });
+
     episodes.sort((a, b) => parseFloat(a.number) - parseFloat(b.number));
+
     return episodes;
 }
 
-// ----- 4. extractStreamUrl -----
-// Input : HTML de https://tioanime.com/ver/[slug]-[num]
-// Output: URL del stream (string) o null
+async function extractStreamUrl(html) {
+    try {
+        // TioAnime carga el stream en un iframe externo (biribup.com)
+        const iframeMatch = html.match(/src="(https:\/\/biribup\.com[^"]+)"/);
+        if (!iframeMatch) return null;
 
-function extractStreamUrl(html) {
-    // Dominios a ignorar (banners, redes sociales, etc.)
-    const skipDomains = [
-        "cuevadeana", "youtube", "google", "facebook",
-        "disqus", "twitter", "googleapis", "gstatic"
-    ];
+        const iframeUrl = iframeMatch[1].replace(/&amp;/g, '&');
 
-    // 1. Buscar iframe de reproductor
-    const iframeRegex = /<iframe[^>]+src="(https?:\/\/[^"]+)"[^>]*>/gi;
-    let match;
-    while ((match = iframeRegex.exec(html)) !== null) {
-        const src = match[1];
-        if (!skipDomains.some(d => src.includes(d))) {
-            return src;
-        }
+        const response = await fetchv2(iframeUrl, {
+            'Referer': 'https://tioanime.com/',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        });
+        const iframeHtml = await response.text();
+
+        // Buscar .m3u8 dentro del iframe
+        const m3u8Match = iframeHtml.match(/["'](https?:\/\/[^"']+\.m3u8[^"']*)['"]/);
+        if (m3u8Match) return m3u8Match[1];
+
+        // Buscar .mp4 dentro del iframe
+        const mp4Match = iframeHtml.match(/["'](https?:\/\/[^"']+\.mp4[^"']*)['"]/);
+        if (mp4Match) return mp4Match[1];
+
+        return null;
+    } catch (error) {
+        return null;
     }
-
-    // 2. Buscar stream directo .m3u8
-    const m3u8Match = html.match(/["'](https?:\/\/[^"']+\.m3u8[^"']*)['"]/i);
-    if (m3u8Match) return m3u8Match[1];
-
-    // 3. Buscar stream directo .mp4
-    const mp4Match = html.match(/["'](https?:\/\/[^"']+\.mp4[^"']*)['"]/i);
-    if (mp4Match) return mp4Match[1];
-
-    // 4. Fallback: URL biribup (player embebido de TioAnime)
-    const biribupMatch = html.match(/(https:\/\/biribup\.com\/full\?[^"'<\s]+)/i);
-    if (biribupMatch) return biribupMatch[1].replace(/&amp;/g, "&");
-
-    return null;
 }
