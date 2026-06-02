@@ -1,97 +1,86 @@
 async function searchResults(keyword) {
+    const results = [];
     try {
-        const encodedKeyword = encodeURIComponent(keyword);
-        const response = await fetch(`https://anime-jl.net/animes?q=${encodedKeyword}`);
-        const $ = load(response);
+        const response = await fetchv2("https://anime-jl.net/animes?q=" + encodeURIComponent(keyword));
+        const html = await response.text();
 
-        const results = [];
-        $('article.anime, div.anime-card, .ListAnimes article').each((el) => {
-            const title = $('h3, .Title', el).text().trim();
-            const image = $('img', el).attr('src') || $('img', el).attr('data-src') || '';
-            const href = $('a', el).attr('href') || '';
-            if (title && href) {
-                results.push({
-                    title: title,
-                    image: image,
-                    href: href.startsWith('http') ? href : `https://anime-jl.net${href}`
-                });
-            }
-        });
+        const regex = /<article[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"[\s\S]*?<a[^>]+href="(\/anime\/[^"]+)"[^>]*>\s*([^<]+)<\/a>/g;
+
+        let match;
+        while ((match = regex.exec(html)) !== null) {
+            results.push({
+                title: match[3].trim(),
+                image: match[1].trim(),
+                href: "https://anime-jl.net" + match[2].trim()
+            });
+        }
 
         return JSON.stringify(results);
-    } catch (error) {
-        console.log('Search error:', error);
-        return JSON.stringify([{ title: 'Error', image: '', href: '' }]);
+    } catch (err) {
+        console.error("Search error:", err);
+        return JSON.stringify([{ title: "Error", image: "", href: "" }]);
     }
 }
 
 async function extractDetails(url) {
     try {
-        const response = await fetch(url);
-        const $ = load(response);
+        const response = await fetchv2(url);
+        const html = await response.text();
 
-        const description = $('div.Description p, .sinopsis, .anime-description').first().text().trim()
-            || 'No description available';
-        const aliases = $('span.Aliases, .otros-nombres').text().trim() || '';
-        const airdate = $('span.Date, .fecha-emision, .year').text().trim() || '';
+        const descMatch = html.match(/<div[^>]*class="[^"]*sinopsis[^"]*"[^>]*>[\s\S]*?<p>([\s\S]*?)<\/p>/i)
+            || html.match(/<p[^>]*class="[^"]*description[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
+        const description = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : "Sin descripción";
+
+        const yearMatch = html.match(/(\d{4})/);
+        const airdate = yearMatch ? yearMatch[1] : "N/A";
 
         return JSON.stringify([{
-            description: description,
-            aliases: aliases,
-            airdate: airdate
+            description,
+            aliases: "N/A",
+            airdate
         }]);
-    } catch (error) {
-        console.log('Details error:', error);
-        return JSON.stringify([{
-            description: 'Error loading description',
-            aliases: '',
-            airdate: ''
-        }]);
+    } catch (err) {
+        return JSON.stringify([{ description: "Error", aliases: "N/A", airdate: "N/A" }]);
     }
 }
 
 async function extractEpisodes(url) {
+    const results = [];
     try {
-        const response = await fetch(url);
-        const $ = load(response);
+        const response = await fetchv2(url);
+        const html = await response.text();
 
-        const episodes = [];
-        $('ul.ListCaps li, .episodes-list li, .capitulos li').each((el) => {
-            const epHref = $('a', el).attr('href') || '';
-            const epNum = $('p.Num, .num-epi, span', el).text().trim() || '1';
-            if (epHref) {
-                episodes.push({
-                    href: epHref.startsWith('http') ? epHref : `https://anime-jl.net${epHref}`,
-                    number: epNum
-                });
-            }
-        });
+        const regex = /<a[^>]+href="(\/anime\/[^"]*\/episodio-(\d+)[^"]*)"[^>]*>/g;
 
-        return JSON.stringify(episodes);
-    } catch (error) {
-        console.log('Episodes error:', error);
-        return JSON.stringify([]);
+        let match;
+        while ((match = regex.exec(html)) !== null) {
+            results.push({
+                href: "https://anime-jl.net" + match[1].trim(),
+                number: parseInt(match[2], 10)
+            });
+        }
+
+        return JSON.stringify(results);
+    } catch (err) {
+        return JSON.stringify([{ href: "Error", number: 0 }]);
     }
 }
 
 async function extractStreamUrl(url) {
     try {
-        const response = await fetch(url);
-        const $ = load(response);
+        const response = await fetchv2(url);
+        const html = await response.text();
 
-        // Buscar iframe o fuente de video embebida
-        const iframe = $('iframe#PlayerFrame, iframe.player-embed, iframe').first().attr('src') || '';
-        if (iframe) {
-            return iframe.startsWith('http') ? iframe : `https://anime-jl.net${iframe}`;
+        const iframeMatch = html.match(/<iframe[^>]+src="([^"]+)"/i);
+        if (iframeMatch) {
+            return iframeMatch[1];
         }
 
-        // Buscar source directo
-        const source = $('source[src]').first().attr('src') || '';
-        if (source) return source;
+        const m3u8Match = html.match(/https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/i);
+        if (m3u8Match) return m3u8Match[0];
 
         return null;
-    } catch (error) {
-        console.log('Stream error:', error);
+    } catch (err) {
         return null;
     }
 }
