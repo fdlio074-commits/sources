@@ -1,17 +1,23 @@
 {
-    "sourceName": "Anime-JL",
-    "iconUrl": "https://anime-jl.net/wp-content/uploads/2020/02/cropped-logo-animejl-192x192.png",
-    "author": "Lio",
-        "name": "Fdlio",
-        "icon": "https://avatars.githubusercontent.com/u/fdlio074-commits"
+  "id": "net.animejl.fdlio",
+  "name": "Anime JL",
+  "author": "Fdlio",
+  "version": "1.0.0",
+  "icon": "https://raw.githubusercontent.com/fdlio074/sources/main/animeonline/icon.png",
+  "baseUrl": "https://anime-jl.net",
+  "features": {
+    "search": {
+      "url": "https://anime-jl.net/animes?search={{query}}",
+      "script": "https://raw.githubusercontent.com/fdlio074/sources/main/animeonline/animeonline.js",
+      "mode": "async"
     },
-    "version": "1.0.2",
-    "language": "Español Latino",
-    "streamType": "HLS",
-    "quality": "1080p",
-    "baseUrl": "https://anime-jl.net",
-    "searchBaseUrl": "https://anime-jl.net/animes?q=%s",
-    "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
-    "asyncJS": true,
-    "type": "anime"
+    "detail": {
+      "script": "https://raw.githubusercontent.com/fdlio074/sources/main/animeonline/animeonline.js",
+      "mode": "async"
+    },
+    "episode": {
+      "script": "https://raw.githubusercontent.com/fdlio074/sources/main/animeonline/animeonline.js",
+      "mode": "async"
+    }
+  }
 }
