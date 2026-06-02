@@ -78,16 +78,13 @@ async function extractDetails(url) {
 
 async function extractEpisodes(url) {
     try {
-        // Intentar el fetch sin headers primero
         const response = await fetchv2(url);
         const html = await response.text();
 
         const htmlLen = html ? html.length : 0;
 
-        // Si el HTML es muy corto, el sitio bloqueó el request
         if (htmlLen < 1000) {
             console.log("extractEpisodes: HTML bloqueado, largo=" + htmlLen);
-            // Intentar con headers
             const response2 = await fetchv2(url, {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -107,13 +104,10 @@ async function extractEpisodes(url) {
 }
 
 function extractEpisodesFromHtml(html, url) {
-    // Extraer id y slug directamente de la URL como fallback
-    // URL: https://www.anime-jl.net/anime/1049/naruto-latino-v2
     const urlMatch = url.match(/\/anime\/(\d+)\/([^\/]+)/);
     let animeId = urlMatch ? urlMatch[1] : null;
     let animeSlug = urlMatch ? urlMatch[2] : null;
 
-    // También intentar desde el HTML
     const animeInfoMatch = html.match(/var anime_info\s*=\s*\["(\d+)","[^"]*","([^"]+)"/);
     if (animeInfoMatch) {
         animeId = animeInfoMatch[1];
@@ -125,7 +119,6 @@ function extractEpisodesFromHtml(html, url) {
         return JSON.stringify([]);
     }
 
-    // Extraer episodios con regex simple sobre cada par [número, "episodio-N"]
     const epRegex = /\[(\d+),"(episodio-\d+)"/g;
     const episodes = [];
     const seen = new Set();
@@ -150,42 +143,74 @@ async function extractStreamUrl(url) {
     try {
         const response = await fetchv2(url, {
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
-            "Referer": "https://www.anime-jl.net/"
+            "Referer": "https://www.anime-jl.net/",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
         });
         const html = await response.text();
 
-        const m3u8Match = html.match(/https?:\/\/[^\s"'<>]+\.m3u8[^\s"'<>]*/i);
-        if (m3u8Match) return m3u8Match[0];
+        // 1. Buscar m3u8 directo en el HTML principal
+        const directM3u8 = html.match(/https?:\/\/[^\s"'<>]+\.m3u8(?:\?[^\s"'<>]*)?/i);
+        if (directM3u8) return directM3u8[0];
 
-        const mp4Match = html.match(/https?:\/\/[^\s"'<>]+\.mp4[^\s"'<>]*/i);
-        if (mp4Match) return mp4Match[0];
+        // 2. Recolectar todos los iframes
+        const iframeRegex = /<iframe[^>]+src=['"]([^'"]+)['"]/gi;
+        let iframeMatch;
+        const iframes = [];
 
-        const iframeMatch = html.match(/<iframe[^>]+src=['"]([^'"]+)['"]/i);
-        if (iframeMatch) {
-            const iframeUrl = iframeMatch[1].startsWith("//")
-                ? "https:" + iframeMatch[1]
-                : iframeMatch[1];
-
-            const iframeResp = await fetchv2(iframeUrl, {
-                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
-                "Referer": "https://www.anime-jl.net/"
-            });
-            const iframeHtml = await iframeResp.text();
-
-            const iframeM3u8 = iframeHtml.match(/https?:\/\/[^\s"'<>]+\.m3u8[^\s"'<>]*/i);
-            if (iframeM3u8) return iframeM3u8[0];
-
-            const iframeMp4 = iframeHtml.match(/https?:\/\/[^\s"'<>]+\.mp4[^\s"'<>]*/i);
-            if (iframeMp4) return iframeMp4[0];
-
-            const fileMatch = iframeHtml.match(/["'](?:file|src)["']\s*:\s*["'](https?:\/\/[^"']+\.(?:m3u8|mp4)[^"']*)["']/i);
-            if (fileMatch) return fileMatch[1];
+        while ((iframeMatch = iframeRegex.exec(html)) !== null) {
+            let src = iframeMatch[1];
+            if (src.startsWith("//")) src = "https:" + src;
+            if (src.startsWith("http")) iframes.push(src);
         }
 
-        const fileMatch2 = html.match(/["'](?:file|src)["']\s*:\s*["'](https?:\/\/[^"']+\.(?:m3u8|mp4)[^"']*)["']/i);
+        // También buscar data-src de reproductores conocidos
+        const dataSrcRegex = /data-src=['"]([^'"]*(?:streamwish|filemoon|dood|voe|streamtape)[^'"]*)['"]|data-video=['"]([^'"]+)['"]/gi;
+        let dsMatch;
+        while ((dsMatch = dataSrcRegex.exec(html)) !== null) {
+            let src = dsMatch[1] || dsMatch[2];
+            if (!src) continue;
+            if (src.startsWith("//")) src = "https:" + src;
+            if (src.startsWith("http")) iframes.push(src);
+        }
+
+        // 3. Iterar cada iframe buscando el stream
+        for (const iframeUrl of iframes) {
+            try {
+                const iframeResp = await fetchv2(iframeUrl, {
+                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+                    "Referer": "https://www.anime-jl.net/",
+                    "Origin": "https://www.anime-jl.net"
+                });
+                const iframeHtml = await iframeResp.text();
+
+                // m3u8 directo
+                const m3u8 = iframeHtml.match(/https?:\/\/[^\s"'\\>]+\.m3u8(?:\?[^\s"'\\>]*)?/i);
+                if (m3u8) return m3u8[0];
+
+                // JSON embebido: "file":"url"
+                const fileJson = iframeHtml.match(/['"](?:file|src)['"]\s*:\s*['"](https?:\/\/[^'"]+\.(?:m3u8|mp4)[^'"]*)['"]/i);
+                if (fileJson) return fileJson[1];
+
+                // jwplayer setup sources
+                const jwMatch = iframeHtml.match(/sources\s*:\s*\[\s*\{[^}]*file\s*:\s*['"]([^'"]+)['"]/i);
+                if (jwMatch) return jwMatch[1];
+
+                // mp4 como fallback
+                const mp4 = iframeHtml.match(/https?:\/\/[^\s"'\\>]+\.mp4(?:\?[^\s"'\\>]*)?/i);
+                if (mp4) return mp4[0];
+
+            } catch (iframeError) {
+                console.log("iframe fetch error: " + iframeUrl + " — " + iframeError);
+            }
+        }
+
+        // 4. Último intento: buscar en el HTML principal con patrón file/src JSON
+        const fileMatch2 = html.match(/['"](?:file|src)['"]\s*:\s*['"](https?:\/\/[^'"]+\.(?:m3u8|mp4)[^'"]*)['"]/i);
         if (fileMatch2) return fileMatch2[1];
 
+        console.log("extractStreamUrl: no se encontró stream en " + url);
         return null;
+
     } catch (error) {
         console.log("extractStreamUrl error: " + error);
         return null;
