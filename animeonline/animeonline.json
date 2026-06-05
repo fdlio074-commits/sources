@@ -1,17 +1,19 @@
 {
-    "sourceName": "AnimeFHD",
-    "iconUrl": "https://animefhd.net/wp-content/uploads/2024/12/270.png",
+    "sourceName": "CineCalidad",
+    "iconUrl": "https://www.cinecalidad.ec/wp-content/themes/Cinecalidad/assets/img/favicon.png",
     "author": {
         "name": "50/50",
         "icon": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3122kQwublLkZ6rf1fEpUP79BxZOFmH9BSA&s"
     },
-    "version": "1.0.2",
-    "language": "Portuguese (SUB)",
-    "streamType": "MP4",
+    "version": "1.0.0",
+    "language": "Spanish (DUB/SUB)",
+    "streamType": "HLS",
     "quality": "1080p",
-    "baseUrl": "https://animefhd.net/",
-    "searchBaseUrl": "https://animefhd.net/?s=%s",
-    "scriptUrl": "https://git.luna-app.eu/50n50/sources/raw/branch/main/animefhd/animefhd.js",
+    "baseUrl": "https://www.cinecalidad.ec/",
+    "searchBaseUrl": "https://www.cinecalidad.ec/",
+    "scriptUrl": "https://git.luna-app.eu/50n50/sources/raw/branch/main/cinecalidad/cinecalidad.js",
+    "type": "shows/movies",
     "asyncJS": true,
-    "type": "anime"
+    "softsub": false,
+    "downloadSupport": false
 }
