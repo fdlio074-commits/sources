@@ -1,19 +1,17 @@
 {
-    "sourceName": "Kawaiines",
-    "iconUrl": "https://kawaiines.in/logo.png",
+    "sourceName": "AnimeFHD",
+    "iconUrl": "https://animefhd.net/wp-content/uploads/2024/12/270.png",
     "author": {
         "name": "50/50",
         "icon": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3122kQwublLkZ6rf1fEpUP79BxZOFmH9BSA&s"
     },
-    "version": "1.0.0",
-    "language": "Hindi",
-    "streamType": "HLS",
+    "version": "1.0.2",
+    "language": "Portuguese (SUB)",
+    "streamType": "MP4",
     "quality": "1080p",
-    "baseUrl": "https://kawaiines.in/",
-    "searchBaseUrl": "https://kawaiines.in/",
-    "scriptUrl": "https://git.luna-app.eu/50n50/sources/raw/branch/main/kawaiines/kawaiines.js",
-    "type": "anime",
+    "baseUrl": "https://animefhd.net/",
+    "searchBaseUrl": "https://animefhd.net/?s=%s",
+    "scriptUrl": "https://git.luna-app.eu/50n50/sources/raw/branch/main/animefhd/animefhd.js",
     "asyncJS": true,
-    "softsub": false,
-    "downloadSupport": false
+    "type": "anime"
 }
