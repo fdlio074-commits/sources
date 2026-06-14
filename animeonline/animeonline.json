@@ -5,7 +5,7 @@
     "name": "Fdlio",
     "icon": "https://sololatino.net/favicon.ico"
   },
-  "version": "1.0.0",
+  "version": "1.0.1",
   "language": "Spanish",
   "streamType": "HLS",
   "quality": "1080p",
