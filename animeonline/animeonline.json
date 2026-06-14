@@ -6,7 +6,7 @@
     "icon": "https://sololatino.net/favicon.ico"
   },
   "version": "1.0.0",
-  "language": "Spanish Latino",
+  "language": "Spanish",
   "streamType": "HLS",
   "quality": "1080p",
   "baseUrl": "https://sololatino.net/",
