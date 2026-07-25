@@ -1,0 +1,19 @@
+{
+  "sourceName": "AnimeAV1",
+  "iconUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/animeav1/animeav1/icon.png",
+  "author": {
+    "name": "Fdlio",
+    "icon": "https://avatars.githubusercontent.com/fdlio074-commits"
+  },
+  "version": "1.0.0",
+  "language": "Spanish (LAT)",
+  "streamType": "HLS",
+  "quality": "1080p",
+  "baseUrl": "https://animeav1.com",
+  "searchBaseUrl": "https://animeav1.com/search?q=%s",
+  "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/animeav1/animeav1/animeav1.js",
+  "asyncJS": false,
+  "streamAsyncJS": true,
+  "softsub": false,
+  "type": "anime"
+}
