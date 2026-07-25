@@ -30,8 +30,8 @@ function extractDetails(html) {
     const metaDesc = html.match(/meta-description:\s*([^\n]+)/);
     let description = metaDesc ? metaDesc[1].replace(/\.\.\.$/, '').trim() : '';
 
-    const yearMatch = html.match(/(\d{4})\s+\d+\s*temp\.|(\d{4})\s+[A-Z]{2}/);
-    let airdate = yearMatch ? (yearMatch[1] || yearMatch[2]) : '';
+    const yearMatch = html.match(/(\d{4})\s+\d+\s*temp\./);
+    let airdate = yearMatch ? yearMatch[1] : '';
 
     const typeMatch = html.match(/Anime|Serie|Película|Dorama/);
     let aliases = typeMatch ? typeMatch[0] : 'N/A';
@@ -60,7 +60,7 @@ function extractEpisodes(html) {
 
         episodes.push({
             href,
-            number: `${season}x${epNum.padStart(2, '0')}`
+            number: String((parseInt(season) - 1) * 1000 + parseInt(epNum))
         });
     }
 
