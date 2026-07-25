@@ -1,0 +1,20 @@
+{
+  "sourceName": "SoloLatino",
+  "iconUrl": "https://www.google.com/s2/favicons?sz=128&domain_url=sololatino.net",
+  "author": {
+    "name": "Fdlio",
+    "icon": "https://avatars.githubusercontent.com/fdlio074-commits"
+  },
+  "version": "1.0.0",
+  "language": "Spanish (LAT)",
+  "streamType": "HLS",
+  "quality": "720p",
+  "baseUrl": "https://sololatino.net/",
+  "searchBaseUrl": "https://sololatino.net/buscar?q=%s",
+  "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/sololatino/script.js",
+  "type": "anime",
+  "downloadSupport": false,
+  "asyncJS": true,
+  "streamAsyncJS": false,
+  "softsub": false
+}
