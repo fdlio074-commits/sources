@@ -1,0 +1,19 @@
+{
+  "sourceName": "LatAnime",
+  "iconUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/latanime/latanime/icon.png",
+  "author": {
+    "name": "Fdlio",
+    "icon": "https://avatars.githubusercontent.com/fdlio074-commits"
+  },
+  "version": "1.0.0",
+  "language": "Spanish (LAT)",
+  "streamType": "HLS",
+  "quality": "1080p",
+  "baseUrl": "https://latanime.com",
+  "searchBaseUrl": "https://latanime.com/search?q=%s",
+  "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/latanime/latanime/latanime.js",
+  "asyncJS": false,
+  "streamAsyncJS": true,
+  "softsub": false,
+  "type": "anime"
+}
