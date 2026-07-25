@@ -6,19 +6,14 @@
     "icon": "https://avatars.githubusercontent.com/fdlio074-commits"
   },
   "version": "1.0.0",
-  "language": "Spanish",
-  "languageType": [
-    "Dubbed"
-  ],
+  "language": "Spanish (LAT)",
   "streamType": "HLS",
-  "quality": "Auto",
+  "quality": "1080p",
   "baseUrl": "https://sololatino.net",
   "searchBaseUrl": "https://sololatino.net/buscar?q=%s",
   "scriptUrl": "https://raw.githubusercontent.com/fdlio074-commits/sources/main/animeonline/animeonline.js",
-  "type": "anime",
-  "asyncJS": true,
+  "asyncJS": false,
   "streamAsyncJS": true,
   "softsub": false,
-  "downloadSupport": false,
-  "supportsSora": true
+  "type": "anime"
 }
